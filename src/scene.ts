@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
  * A class to set up some basic scene elements to minimize code in the
  * main execution file.
  */
-export default class BasicScene extends THREE.Scene{
+export default class BasicScene extends THREE.Scene {
 
     // A dat.gui class debugger that is added by default
     debugger: GUI | null = null;

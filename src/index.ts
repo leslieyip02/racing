@@ -1,18 +1,22 @@
 import BasicScene from "./scene";
+import GameScene from "./GameScene";
 
 // sets up the scene
-let scene = new BasicScene();
-scene.initialize();
+// let scene = new BasicScene();
+// scene.initialize();
+
+let scene = new GameScene();
 
 // loops updates
-function loop() {
-    if (scene.camera && scene.renderer && scene.orbitals) {
-        scene.camera.updateProjectionMatrix();
-        scene.renderer.render(scene, scene.camera);
+function animate() {
+    scene.camera.updateProjectionMatrix();
+    scene.renderer.render(scene, scene.camera);
+
+    if (scene.orbitals)
         scene.orbitals.update()
-        requestAnimationFrame(loop);
-    }
+    
+    requestAnimationFrame(animate);
 }
 
-// runs a continuous loop
-loop()
+// runs a continuous animation loop
+animate()

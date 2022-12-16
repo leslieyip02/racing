@@ -4,8 +4,8 @@ module.exports = {
     mode: "none",
     entry: "./src/index.ts",
     output: {
-        path: path.resolve(__dirname, "dist"),
-        filename: "main.js"
+        filename: "main.js",
+        path: path.resolve(__dirname, "dist")
     },
     resolve: {
         alias: {
