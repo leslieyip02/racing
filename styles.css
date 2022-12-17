@@ -1,0 +1,13 @@
+html, body, canvas {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+body {
+    background: linear-gradient(#000226, #000F39, #002555, #07205a);
+}
+
+canvas {
+    display: block;
+}
