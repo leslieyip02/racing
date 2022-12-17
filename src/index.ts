@@ -1,20 +1,24 @@
-import BasicScene from "./scene";
 import GameScene from "./GameScene";
 
-// sets up the scene
-// let scene = new BasicScene();
-// scene.initialize();
-
+// set up scene
 let scene = new GameScene();
 
+// keep track of time
+let currentTime = 0;
+
 // loops updates
-function animate() {
+function animate(timestamp?: number) {
+    let dt = timestamp - currentTime;
+    currentTime = timestamp;
+
     scene.camera.updateProjectionMatrix();
     scene.renderer.render(scene, scene.camera);
 
     if (scene.orbitals)
         scene.orbitals.update()
-    
+
+    scene.update(dt);
+
     requestAnimationFrame(animate);
 }
 
