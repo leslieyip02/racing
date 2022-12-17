@@ -4,7 +4,8 @@
   "description": "",
   "private": "true",
   "scripts": {
-    "build": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js",
+    "deploy": "gh-pages -d dist"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +13,7 @@
   "devDependencies": {
     "@types/dat.gui": "^0.7.7",
     "@types/three": "^0.146.0",
+    "gh-pages": "^4.0.0",
     "ts-loader": "^9.4.2",
     "ts-node": "^10.9.1",
     "webpack": "^5.75.0",
