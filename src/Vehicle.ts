@@ -94,7 +94,7 @@ export default class Vehicle {
                 .multiplyScalar(0.001 * dt));
 
         // deceleration
-        if (keysPressed["s"])
+        if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
                 .multiplyScalar(0.0005 * dt));
 

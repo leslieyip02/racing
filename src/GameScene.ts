@@ -87,15 +87,16 @@ export default class GameScene extends THREE.Scene {
             "w": false,
             "a": false,
             "s": false,
-            "d": false
+            "d": false,
+            "shift": false
         };
 
         window.addEventListener("keydown", (e: KeyboardEvent) => {
-            this.keysPressed[e.key] = true;
+            this.keysPressed[e.key.toLowerCase()] = true;
         });
 
         window.addEventListener("keyup", (e: KeyboardEvent) => {
-            this.keysPressed[e.key] = false;
+            this.keysPressed[e.key.toLowerCase()] = false;
         });
 
         // set up window resizing
