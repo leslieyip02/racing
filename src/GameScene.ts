@@ -4,7 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Track from "./Track";
 import Vehicle from "./Vehicle";
 import { IKeysPressed } from "./utils/interfaces";
-import { Scene } from "three";
+import defaultTrack from "../data/tracks/default";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -42,8 +42,8 @@ export default class GameScene extends THREE.Scene {
         // this.background = new THREE.Color(0x07205a);
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this);
-        this.track.render();
+        this.track = new Track(this, defaultTrack);
+        this.track.render(true);
 
         let startPoint = this.track.startPoint.clone();
         startPoint.y += 0.5;

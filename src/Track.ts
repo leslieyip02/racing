@@ -1,15 +1,18 @@
 import * as THREE from "three";
 import GameScene from "./GameScene";
+import { ITrackData } from "./utils/interfaces";
 
 export default class Track {
     scene: GameScene;
     
+    trackData: ITrackData;
+    
     body: THREE.Mesh;
     startPoint: THREE.Vector3;
 
-    constructor(scene: GameScene) {
+    constructor(scene: GameScene, trackData: ITrackData) {
         this.scene = scene;
-        this.startPoint = new THREE.Vector3(30, 2, -10);
+        this.trackData = trackData;
     }
 
     // creates a plane from 4 corners
@@ -19,7 +22,7 @@ export default class Track {
         let geometry = new THREE.PlaneGeometry().setFromPoints(points);
         let mesh = new THREE.Mesh(geometry, material);
 
-        if (rotation != undefined) 
+        if (rotation) 
             mesh.setRotationFromEuler(rotation);
 
         if (debug) {
@@ -34,8 +37,9 @@ export default class Track {
         return mesh;
     }
 
+    // creates a catmull-rom spline
     createCurve(points: Array<THREE.Vector3>, material: THREE.Material, 
-        shape: THREE.Shape, options: THREE.ExtrudeGeometryOptions,
+        shape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions,
         steps?: number, debug?: boolean): THREE.Mesh {
 
         if (debug) {
@@ -48,7 +52,7 @@ export default class Track {
         }
 
         let curve = new THREE.CatmullRomCurve3(points, false);
-        points = curve.getPoints(64);
+        points = curve.getPoints(100);
 
         if (debug) {
             let lineGeometry = new THREE.BufferGeometry()
@@ -59,107 +63,55 @@ export default class Track {
             this.scene.add(line);
         }
 
-        options.extrudePath = curve;
-        if (steps)
-            options.steps = steps;
+        extrudeOptions.extrudePath = curve;
 
-        let geometry = new THREE.ExtrudeGeometry(shape, options);
+        if (steps)
+            extrudeOptions.steps = steps;
+
+        let geometry = new THREE.ExtrudeGeometry(shape, extrudeOptions);
         let mesh = new THREE.Mesh(geometry, material);
 
         return mesh;
     }
 
+    createTrack(straights: Array<Array<THREE.Vector3>>, 
+        curves: Array<Array<THREE.Vector3>>, material: THREE.Material,
+        shape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions,
+        debug?: boolean): THREE.Mesh {
+        
+        let meshes: Array<THREE.Mesh> = [];
+
+        for (let straight of straights) {
+            let mesh = this.createStraight(straight, material, null, debug);
+            meshes.push(mesh);
+        }
+
+        for (let curve of curves) {
+            let mesh = this.createCurve(curve, material, shape, extrudeOptions, null, debug);
+            meshes.push(mesh);
+        }
+
+        let track = meshes.shift();
+        for (let mesh of meshes) {
+            track.add(mesh);
+        }
+
+        return track;
+    }
+
     render(debug: boolean = false) {
-        let points: Array<THREE.Vector3> = [
-            new THREE.Vector3(30, 2, -10),
-            new THREE.Vector3(20, 2, -80),
-            new THREE.Vector3(-10, 6, -150),
-            new THREE.Vector3(10, 4, -210),
-            new THREE.Vector3(-30, 4, -210),
-            new THREE.Vector3(-90, 2, -120),
-            new THREE.Vector3(-200, 2, -120),
-            new THREE.Vector3(-200, 1, -40),
-            new THREE.Vector3(-100, 1, -40),
-            new THREE.Vector3(-80, 2, 2),
-            new THREE.Vector3(-100, 2, 60),
-            new THREE.Vector3(-70, 2, 110),
-            new THREE.Vector3(-30, 2, 100),
-            new THREE.Vector3(-20, 10, 80),
-        ];
+        this.startPoint = this.trackData.startPoint;
 
-        let shape = new THREE.Shape([
-            new THREE.Vector2(0, 5),
-            new THREE.Vector2(0, -5),
-        ]);
+        this.body = this.createTrack(this.trackData.straights, 
+            this.trackData.curves, this.trackData.material, 
+            this.trackData.extrudeShape, this.trackData.extrudeOptions, debug);
 
-        let options = {
-            steps: 100,
-            bevelEnabled: true,
-        };
-
-        let material = new THREE.MeshLambertMaterial({ 
-            color: 0x000e54,
-            wireframe: false
-        });
-
-        this.body = this.createCurve(points, material, shape, options);
         this.scene.add(this.body);
 
-        // if (debug) {
-        //     for (let i = 0; i < points.length; i++) {
-        //         let point: THREE.Vector3 = points[i];
-        //         let markerGeometry = new THREE.SphereGeometry(1, 4, 2);
-        //         let markerMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
-        //         let marker = new THREE.Mesh(markerGeometry, markerMaterial);
-        //         marker.position.set(point.x, point.y + 3, point.z);
-        //         this.scene.add(marker);
-        //     }
-        // }
+        let outlineLayer = this.createTrack(this.trackData.outlineLayer.straights, 
+            this.trackData.curves, this.trackData.outlineLayer.material, 
+            this.trackData.outlineLayer.extrudeShape, this.trackData.extrudeOptions, debug);
 
-        // let track = new THREE.CatmullRomCurve3(points, false);
-        // this.points = track.getPoints(320);
-
-        // if (debug) {
-        //     let lineGeometry = new THREE.BufferGeometry()
-        //         .setFromPoints(this.points);
-
-        //     let lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-        //     let line = new THREE.Line(lineGeometry, lineMaterial);
-        //     this.scene.add(line);
-        // }
-
-        // let extrudeSettings = {
-        //     steps: 320,
-        //     bevelEnabled: true,
-        //     extrudePath: track
-        // };
-
-        // let trackGeometry = new THREE.ExtrudeGeometry(new THREE.Shape([
-        //     new THREE.Vector2(0, 5),
-        //     new THREE.Vector2(0, -5),
-        // ]), extrudeSettings);
-
-        // let trackMaterial = new THREE.MeshLambertMaterial({ 
-        //     color: 0x000e54,
-        //     wireframe: false
-        // });
-        
-        // this.body = new THREE.Mesh(trackGeometry, trackMaterial);
-        // this.body.translateY(0.2);
-        // this.scene.add(this.body);
-        
-        // let bottomGeometry = new THREE.ExtrudeGeometry(new THREE.Shape([
-        //     new THREE.Vector2(0, 5.6),
-        //     new THREE.Vector2(0, -5.6),
-        // ]), extrudeSettings);
-
-        // let bottomMaterial = new THREE.MeshStandardMaterial({ 
-        //     color: 0x99ccff, 
-        //     wireframe: false 
-        // });
-        
-        // let bottomLayer = new THREE.Mesh(bottomGeometry, bottomMaterial);
-        // bottomLayer.translateY(0.1);
-        // this.scene.add(bottomLayer);
+        this.scene.add(outlineLayer);
     }
 }
