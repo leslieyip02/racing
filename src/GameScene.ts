@@ -45,7 +45,7 @@ export default class GameScene extends THREE.Scene {
         this.track = new Track(this);
         this.track.render();
 
-        let startPoint = this.track.points[0].clone();
+        let startPoint = this.track.startPoint.clone();
         startPoint.y += 0.5;
 
         let vehicle = new Vehicle(this, this.camera, startPoint);
