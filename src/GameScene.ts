@@ -72,10 +72,12 @@ export default class GameScene extends THREE.Scene {
         // set up utilities
         // set up grid
         let gridHelper = new THREE.GridHelper(1000, 1000, 0x5badfb, 0x5badfb);
+        gridHelper.translateY(-0.2);
         this.add(gridHelper);
 
-        // setup axis-helper
-        // this.add(new THREE.AxesHelper(3));
+        // set up axes helper
+        let axesHelper = new THREE.AxesHelper(1000);
+        this.add(axesHelper);
 
         // set up camera orbital controls
         this.orbitals = new OrbitControls(this.camera, this.renderer.domElement);

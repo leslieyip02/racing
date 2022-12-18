@@ -5,6 +5,7 @@ html, body, canvas {
 }
 
 body {
+    height: 100vh;
     background: linear-gradient(#000226, #000F39, #002555, #07205a);
 }
 

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import GameScene from "./GameScene";
-import { ITrackData } from "./utils/interfaces";
+import { ICurveData, ITrackData } from "./utils/interfaces";
 
 export default class Track {
     scene: GameScene;
@@ -15,37 +15,17 @@ export default class Track {
         this.trackData = trackData;
     }
 
-    // creates a plane from 4 corners
-    createStraight(points: Array<THREE.Vector3>, material: THREE.Material, 
-        rotation?: THREE.Euler, debug?: boolean): THREE.Mesh {
-        
-        let geometry = new THREE.PlaneGeometry().setFromPoints(points);
-        let mesh = new THREE.Mesh(geometry, material);
-
-        if (rotation) 
-            mesh.setRotationFromEuler(rotation);
-
-        if (debug) {
-            for (let point of points) {
-                let geometry = new THREE.SphereGeometry(1, 4, 2);
-                let marker = new THREE.Mesh(geometry, material);
-                marker.position.set(point.x, point.y + 3, point.z);
-                this.scene.add(marker);
-            }
-        }
-
-        return mesh;
-    }
-
     // creates a catmull-rom spline
-    createCurve(points: Array<THREE.Vector3>, material: THREE.Material, 
-        shape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions,
+    createCurve(points: Array<THREE.Vector3>, extrudeShape: THREE.Shape, 
+        extrudeOptions: THREE.ExtrudeGeometryOptions, material: THREE.Material,
         steps?: number, debug?: boolean): THREE.Mesh {
 
         if (debug) {
+            let markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
             for (let point of points) {
                 let markerGeometry = new THREE.SphereGeometry(1, 4, 2);
-                let marker = new THREE.Mesh(markerGeometry, material);
+                let marker = new THREE.Mesh(markerGeometry, markerMaterial);
                 marker.position.set(point.x, point.y + 3, point.z);
                 this.scene.add(marker);
             }
@@ -68,26 +48,25 @@ export default class Track {
         if (steps)
             extrudeOptions.steps = steps;
 
-        let geometry = new THREE.ExtrudeGeometry(shape, extrudeOptions);
+        let geometry = new THREE.ExtrudeGeometry(extrudeShape, extrudeOptions);
         let mesh = new THREE.Mesh(geometry, material);
 
         return mesh;
     }
 
-    createTrack(straights: Array<Array<THREE.Vector3>>, 
-        curves: Array<Array<THREE.Vector3>>, material: THREE.Material,
-        shape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions,
+    createTrack(curves: Array<ICurveData>, extrudeShapes: Array<THREE.Shape>,
+        extrudeOptions: THREE.ExtrudeGeometryOptions, material: THREE.Material,
         debug?: boolean): THREE.Mesh {
         
         let meshes: Array<THREE.Mesh> = [];
 
-        for (let straight of straights) {
-            let mesh = this.createStraight(straight, material, null, debug);
-            meshes.push(mesh);
-        }
-
         for (let curve of curves) {
-            let mesh = this.createCurve(curve, material, shape, extrudeOptions, null, debug);
+            let points = curve.points;
+            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
+
+            let mesh = this.createCurve(points, extrudeShape, 
+                extrudeOptions, material, null, debug);
+            
             meshes.push(mesh);
         }
 
@@ -102,15 +81,15 @@ export default class Track {
     render(debug: boolean = false) {
         this.startPoint = this.trackData.startPoint;
 
-        this.body = this.createTrack(this.trackData.straights, 
-            this.trackData.curves, this.trackData.material, 
-            this.trackData.extrudeShape, this.trackData.extrudeOptions, debug);
+        this.body = this.createTrack(this.trackData.curves, 
+            this.trackData.extrudeShapes, this.trackData.extrudeOptions, 
+            this.trackData.material, debug);
 
         this.scene.add(this.body);
 
-        let outlineLayer = this.createTrack(this.trackData.outlineLayer.straights, 
-            this.trackData.curves, this.trackData.outlineLayer.material, 
-            this.trackData.outlineLayer.extrudeShape, this.trackData.extrudeOptions, debug);
+        let outlineLayer = this.createTrack(this.trackData.curves, 
+            this.trackData.outlineExtrudeShapes, this.trackData.extrudeOptions, 
+            this.trackData.outlineMaterial, debug);
 
         this.scene.add(outlineLayer);
     }

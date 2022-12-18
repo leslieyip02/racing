@@ -2,18 +2,19 @@ interface IKeysPressed {
     [key: string]: boolean; 
 }
 
+interface ICurveData {
+    points: Array<THREE.Vector3>,
+    extrudeShapeIndex: number
+}
+
 interface ITrackData {
     startPoint: THREE.Vector3,
-    straights: Array<Array<THREE.Vector3>>,
-    curves: Array<Array<THREE.Vector3>>,
-    material: THREE.Material,
-    extrudeShape: THREE.Shape,
+    curves: Array<ICurveData>,
+    extrudeShapes: Array<THREE.Shape>,
+    outlineExtrudeShapes: Array<THREE.Shape>,
     extrudeOptions: THREE.ExtrudeGeometryOptions,
-    outlineLayer: {
-        straights: Array<Array<THREE.Vector3>>,
-        material: THREE.Material,
-        extrudeShape: THREE.Shape
-    }
+    material: THREE.Material,
+    outlineMaterial: THREE.Material
 }
 
 interface IVehicleData {
@@ -24,6 +25,7 @@ interface IVehicleData {
 
 export {
     IKeysPressed,
+    ICurveData,
     ITrackData,
     IVehicleData
 }
