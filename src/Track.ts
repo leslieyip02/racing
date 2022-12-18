@@ -13,19 +13,20 @@ export default class Track {
 
     render(debug: boolean = false) {
         let points: Array<THREE.Vector3> = [
-            new THREE.Vector3(30, 0, -10),
-            new THREE.Vector3(20, 0, -80),
-            new THREE.Vector3(-10, 0, -150),
-            new THREE.Vector3(10, 0, -210),
-            new THREE.Vector3(-30, 0, -210),
-            new THREE.Vector3(-90, 0, -120),
-            new THREE.Vector3(-200, 0, -120),
-            new THREE.Vector3(-200, 0, -40),
-            new THREE.Vector3(-100, 0, -40),
-            new THREE.Vector3(-80, 0, 0),
-            new THREE.Vector3(-100, 0, 60),
-            new THREE.Vector3(-70, 0, 110),
-            new THREE.Vector3(-30, 0, 100),
+            new THREE.Vector3(30, 2, -10),
+            new THREE.Vector3(20, 2, -80),
+            new THREE.Vector3(-10, 6, -150),
+            new THREE.Vector3(10, 4, -210),
+            new THREE.Vector3(-30, 4, -210),
+            new THREE.Vector3(-90, 2, -120),
+            new THREE.Vector3(-200, 2, -120),
+            new THREE.Vector3(-200, 1, -40),
+            new THREE.Vector3(-100, 1, -40),
+            new THREE.Vector3(-80, 2, 2),
+            new THREE.Vector3(-100, 2, 60),
+            new THREE.Vector3(-70, 2, 110),
+            new THREE.Vector3(-30, 2, 100),
+            new THREE.Vector3(-20, 10, 80),
         ];
 
         if (debug) {
@@ -39,7 +40,7 @@ export default class Track {
             }
         }
 
-        let track = new THREE.CatmullRomCurve3(points, true);
+        let track = new THREE.CatmullRomCurve3(points, false);
         this.points = track.getPoints(320);
 
         if (debug) {
