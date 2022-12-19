@@ -2,6 +2,7 @@ import * as THREE from "three";
 import GameScene from "./GameScene";
 import Track from "./Track";
 import { IKeysPressed } from "./utils/interfaces";
+import { DebugVector } from "./utils/debug";
 
 export default class Vehicle {
     scene: GameScene;
@@ -19,11 +20,12 @@ export default class Vehicle {
     width: number;
     length: number;
 
-    directionHelper: THREE.ArrowHelper;
-    normalHelper: THREE.ArrowHelper;
+    debug: boolean = false;
+    directionDebug: DebugVector;
+    normalDebug: DebugVector;
 
     constructor(scene: GameScene, camera: THREE.PerspectiveCamera, 
-        position: THREE.Vector3) {
+        position: THREE.Vector3, debug?: boolean) {
 
         this.scene = scene;
         this.camera = camera;
@@ -37,20 +39,23 @@ export default class Vehicle {
         this.height = 1;
         this.width = 1;
         this.length = 1;
+
+        if (debug)
+            this.debug = debug;
     }
 
     render() {
         // using cube to simulate vehicle
-        let cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        let cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        this.body = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        let geometry = new THREE.BoxGeometry(1, 1, 1);
+        let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        this.body = new THREE.Mesh(geometry, material);
         this.body.position.set(this.position.x, this.position.y, this.position.z);        
         this.scene.add(this.body);
 
-        this.directionHelper = new THREE.ArrowHelper(this.direction.clone(), this.position.clone(), 3, 0xff0000);
-        this.normalHelper = new THREE.ArrowHelper(this.direction.clone(), this.position.clone(), 3, 0xff0000);
-        this.scene.add(this.directionHelper);
-        this.scene.add(this.normalHelper);
+        if (this.debug) {
+            this.directionDebug = new DebugVector(this.scene, this.direction, this.position);
+            this.normalDebug = new DebugVector(this.scene, this.direction, this.position);
+        }
     }
 
     handleTrackCollision(track: Track): boolean {        
@@ -70,14 +75,16 @@ export default class Vehicle {
             let ray = new THREE.Raycaster(currentPosition, directionVector.clone().normalize());
             let collisionResults = ray.intersectObjects([track.body]);
 
-            if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+            if (collisionResults.length > 0 && 
+                collisionResults[0].distance < directionVector.length()) {
                 let collision = collisionResults[0].point;
-                let surfaceNormal = collisionResults[0].face.normal;
-
-                this.normalHelper.setDirection(surfaceNormal);
-                this.normalHelper.position.set(this.position.x, this.position.y, this.position.z);
-                
                 this.position.y = collision.y + this.height * 0.48;
+                
+                if (this.debug) {
+                    let surfaceNormal = collisionResults[0].face.normal;
+                    this.normalDebug.update(surfaceNormal, this.position.clone());
+                }
+                
                 return true;
             }
         }
@@ -137,6 +144,10 @@ export default class Vehicle {
         // update position
         this.position.addVectors(this.position, this.velocity);
         this.body.position.set(this.position.x, this.position.y, this.position.z);
+
+        if (this.debug)
+            this.directionDebug.update(this.direction.clone(), 
+                this.position.clone());
     }
 
     handleCameraMovement() {
@@ -151,7 +162,8 @@ export default class Vehicle {
         this.camera.lookAt(this.body.position.clone().add(this.direction));
     }
 
-    update(keysPressed: IKeysPressed, track: Track, dt?: number) {
+    update(keysPressed: IKeysPressed, track?: Track, dt?: number) {
+        
         if (track == undefined || dt == undefined)
             return;
 
@@ -160,13 +172,5 @@ export default class Vehicle {
 
         if (!this.manualCamera)
            this.handleCameraMovement();
-
-        this.directionHelper.setDirection(this.direction.clone())
-        this.directionHelper.position.set(this.position.x, this.position.y, this.position.z);
-
-        if (this.position.y < -8) {
-            this.position = this.lastCheckpoint.clone();
-            this.body.position.set(this.position.x, this.position.y, this.position.z);
-        }
     }
 }

@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Track from "./Track";
 import Vehicle from "./Vehicle";
 import { IKeysPressed } from "./utils/interfaces";
+import { debugAxes } from "./utils/debug";
 import defaultTrack from "../data/tracks/default";
 
 export default class GameScene extends THREE.Scene {
@@ -48,7 +49,7 @@ export default class GameScene extends THREE.Scene {
         let startPoint = this.track.startPoint.clone();
         startPoint.y += 0.5;
 
-        let vehicle = new Vehicle(this, this.camera, startPoint);
+        let vehicle = new Vehicle(this, this.camera, startPoint, true);
         vehicle.render();
         
         this.vehicles = [];
@@ -76,8 +77,7 @@ export default class GameScene extends THREE.Scene {
         this.add(gridHelper);
 
         // set up axes helper
-        let axesHelper = new THREE.AxesHelper(1000);
-        this.add(axesHelper);
+        debugAxes(this);        
 
         // set up camera orbital controls
         this.orbitals = new OrbitControls(this.camera, this.renderer.domElement);
