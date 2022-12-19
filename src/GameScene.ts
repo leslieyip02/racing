@@ -3,7 +3,7 @@ import { GUI } from "dat.gui";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Track, Vehicle } from "./objects/objects";
 import { IControls } from "./utils/interfaces";
-import defaultTrack from "../data/tracks/default";
+import { track_8 } from "../data/tracks/tracks";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -38,13 +38,9 @@ export default class GameScene extends THREE.Scene {
         this.renderer.setSize(this.width, this.height);
 
         // set objects in the scene
-        // this.background = new THREE.Color(0x07205a);
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this, defaultTrack, true);
-
-        // let startPoint = this.track.startPoint.clone();
-        // startPoint.y += 0.5;
+        this.track = new Track(this, track_8, true);
 
         let vehicle = new Vehicle(this, this.camera, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, true);
