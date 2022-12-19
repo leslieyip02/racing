@@ -4,6 +4,7 @@ interface IControls {
 
 interface ICurveData {
     points: Array<THREE.Vector3>,
+    closed: boolean
     extrudeShapeIndex: number
 }
 
@@ -16,8 +17,9 @@ interface ITrackData {
     surfaceExtrudeShapes: Array<THREE.Shape>,
     outlineExtrudeShapes: Array<THREE.Shape>,
     extrudeOptions: THREE.ExtrudeGeometryOptions,
-    material: THREE.Material,
-    outlineMaterial: THREE.Material
+    surfaceMaterial: THREE.Material,
+    outlineMaterial: THREE.Material,
+    gridColor: number | THREE.Color
 }
 
 interface IVehicleData {

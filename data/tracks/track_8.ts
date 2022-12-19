@@ -17,6 +17,7 @@ let track_8: ITrackData = {
                 new THREE.Vector3(-100, 1, 100),
                 new THREE.Vector3(-75, 1, 75),
             ],
+            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -25,6 +26,7 @@ let track_8: ITrackData = {
                 new THREE.Vector3(0, 11, 0),
                 new THREE.Vector3(75, 1, -75),
             ],
+            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -38,6 +40,7 @@ let track_8: ITrackData = {
                 new THREE.Vector3(-100, 1, -100),
                 new THREE.Vector3(0, 1, 0),
             ],
+            closed: false,
             extrudeShapeIndex: 0
         }
     ],
@@ -75,14 +78,15 @@ let track_8: ITrackData = {
         steps: 640,
         bevelEnabled: true,
     },
-    material: new THREE.MeshLambertMaterial({ 
+    surfaceMaterial: new THREE.MeshLambertMaterial({ 
         color: 0x000e54,
         wireframe: false
     }),
     outlineMaterial: new THREE.MeshStandardMaterial({ 
         color: 0x99ccff, 
         wireframe: false 
-    })
+    }),
+    gridColor: 0x5badfb
 }
 
 export default track_8;

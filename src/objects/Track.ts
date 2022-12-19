@@ -20,14 +20,14 @@ export default class Track {
     }
 
     // creates a catmull-rom spline
-    createCurve(points: Array<THREE.Vector3>, extrudeShape: THREE.Shape, 
-        extrudeOptions: THREE.ExtrudeGeometryOptions, material: THREE.Material,
-        debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
+    createCurve(points: Array<THREE.Vector3>, closed: boolean,
+        extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
+        material: THREE.Material, debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
 
         if (debug && scene) 
             debugPoints(scene, points);
             
-        let curve = new THREE.CatmullRomCurve3(points, false);
+        let curve = new THREE.CatmullRomCurve3(points, closed);
         points = curve.getPoints(100);
 
         if (debug && scene)
@@ -47,11 +47,10 @@ export default class Track {
         
         let meshes: Array<THREE.Mesh> = [];
         for (let curve of curves) {
-            let points = curve.points;
             let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
 
-            let mesh = this.createCurve(points, extrudeShape, 
-                extrudeOptions, material, debug, scene);
+            let mesh = this.createCurve(curve.points, curve.closed,
+                extrudeShape, extrudeOptions, material, debug, scene);
             
             meshes.push(mesh);
         }
@@ -68,6 +67,11 @@ export default class Track {
         if (debug)
             debugAxes(scene);
 
+        // set up grid
+        let grid = new THREE.GridHelper(1000, 1000, 
+            trackData.gridColor, trackData.gridColor);
+        scene.add(grid);    
+
         // make collision layer invisible and above the road
         let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
         this.body = this.createTrack(trackData.curves, 
@@ -77,7 +81,7 @@ export default class Track {
         
         let surfaceLayer = this.createTrack(trackData.curves, 
             trackData.surfaceExtrudeShapes, trackData.extrudeOptions, 
-            trackData.material, debug, scene);
+            trackData.surfaceMaterial, debug, scene);
         scene.add(surfaceLayer);
 
         let outlineLayer = this.createTrack(trackData.curves, 

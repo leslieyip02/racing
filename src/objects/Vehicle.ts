@@ -3,6 +3,8 @@ import Track from "./Track";
 import { IControls } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 
+let defaultGravity = new THREE.Vector3(0, -0.008, 0);
+
 export default class Vehicle {
     camera: THREE.PerspectiveCamera;
     manualCamera: boolean = false;
@@ -33,7 +35,7 @@ export default class Vehicle {
         this.lastCheckpoint = position;
         this.direction = direction;
         this.rotation = rotation;
-        this.gravity = new THREE.Vector3(0, 0, 0);
+        this.gravity = defaultGravity;
         this.velocity = new THREE.Vector3(0, 0, 0);
         
         this.width = 1;
@@ -59,7 +61,7 @@ export default class Vehicle {
         }
     }
 
-    handleTrackCollision(track: Track) {        
+    handleTrackCollision(track: Track) {  
         let currentPosition = this.body.position.clone();
 
         // use raycasting to check for collison with track
@@ -92,16 +94,14 @@ export default class Vehicle {
                 this.rotation.x = up ? -angle : angle;
 
                 if (this.debug)
-                    this.normalDebug.update(surfaceNormal, this.position.clone());
+                    this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
                 
                 return;
             }
         }
     }
 
-    handleVehicleMovement(keysPressed: IControls, 
-        dt: number) {
-
+    handleVehicleMovement(keysPressed: IControls, dt: number) {
         // acceleration
         if (keysPressed["w"])
             this.velocity.add(this.direction.clone()
@@ -170,9 +170,11 @@ export default class Vehicle {
     }
 
     update(keysPressed: IControls, track?: Track, dt?: number) {
-        
         if (track == undefined || dt == undefined)
             return;
+
+        this.rotation.x *= 0.9;
+        this.gravity = defaultGravity;
 
         this.handleTrackCollision(track);
         this.handleVehicleMovement(keysPressed, dt);

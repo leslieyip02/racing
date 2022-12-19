@@ -3,7 +3,7 @@ import { GUI } from "dat.gui";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Track, Vehicle } from "./objects/objects";
 import { IControls } from "./utils/interfaces";
-import { track_8 } from "../data/tracks/tracks";
+import { track_0, track_8 } from "../data/tracks/tracks";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -40,7 +40,8 @@ export default class GameScene extends THREE.Scene {
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this, track_8, true);
+        this.track = new Track(this, track_0, true);
+        // this.track = new Track(this, track_8, true);
 
         let vehicle = new Vehicle(this, this.camera, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, true);
@@ -64,11 +65,6 @@ export default class GameScene extends THREE.Scene {
         vehicleGroup.open();
 
         // set up utilities
-        // set up grid
-        let gridHelper = new THREE.GridHelper(1000, 1000, 0x5badfb, 0x5badfb);
-        gridHelper.translateY(-0.2);
-        this.add(gridHelper);    
-
         // set up camera orbital controls
         this.orbitals = new OrbitControls(this.camera, this.renderer.domElement);
         
