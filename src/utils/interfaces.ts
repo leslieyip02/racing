@@ -1,4 +1,4 @@
-interface IKeysPressed {
+interface IControls {
     [key: string]: boolean; 
 }
 
@@ -24,7 +24,7 @@ interface IVehicleData {
 }
 
 export {
-    IKeysPressed,
+    IControls,
     ICurveData,
     ITrackData,
     IVehicleData

@@ -1,10 +1,8 @@
 import * as THREE from "three";
 import { GUI } from "dat.gui";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import Track from "./Track";
-import Vehicle from "./Vehicle";
-import { IKeysPressed } from "./utils/interfaces";
-import { debugAxes } from "./utils/debug";
+import { Track, Vehicle } from "./objects/objects";
+import { IControls } from "./utils/interfaces";
 import defaultTrack from "../data/tracks/default";
 
 export default class GameScene extends THREE.Scene {
@@ -17,7 +15,7 @@ export default class GameScene extends THREE.Scene {
     height: number;
     width: number;
 
-    keysPressed: IKeysPressed;
+    keysPressed: IControls;
 
     track: Track;
     vehicles: Array<Vehicle>;
@@ -43,14 +41,12 @@ export default class GameScene extends THREE.Scene {
         // this.background = new THREE.Color(0x07205a);
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this, defaultTrack);
-        this.track.render(true);
+        this.track = new Track(this, defaultTrack, true);
 
         let startPoint = this.track.startPoint.clone();
         startPoint.y += 0.5;
 
         let vehicle = new Vehicle(this, this.camera, startPoint, true);
-        vehicle.render();
         
         this.vehicles = [];
         this.vehicles.push(vehicle);
@@ -74,22 +70,13 @@ export default class GameScene extends THREE.Scene {
         // set up grid
         let gridHelper = new THREE.GridHelper(1000, 1000, 0x5badfb, 0x5badfb);
         gridHelper.translateY(-0.2);
-        this.add(gridHelper);
-
-        // set up axes helper
-        debugAxes(this);        
+        this.add(gridHelper);    
 
         // set up camera orbital controls
         this.orbitals = new OrbitControls(this.camera, this.renderer.domElement);
         
         // set up controls
-        this.keysPressed = {
-            "w": false,
-            "a": false,
-            "s": false,
-            "d": false,
-            "shift": false
-        };
+        this.keysPressed = {};
 
         window.addEventListener("keydown", (e: KeyboardEvent) => {
             this.keysPressed[e.key.toLowerCase()] = true;

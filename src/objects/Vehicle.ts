@@ -1,11 +1,9 @@
 import * as THREE from "three";
-import GameScene from "./GameScene";
 import Track from "./Track";
-import { IKeysPressed } from "./utils/interfaces";
-import { DebugVector } from "./utils/debug";
+import { IControls } from "../utils/interfaces";
+import { DebugVector } from "../utils/debug";
 
 export default class Vehicle {
-    scene: GameScene;
     camera: THREE.PerspectiveCamera;
     manualCamera: boolean = false;
 
@@ -20,14 +18,13 @@ export default class Vehicle {
     width: number;
     length: number;
 
-    debug: boolean = false;
+    debug?: boolean;
     directionDebug: DebugVector;
     normalDebug: DebugVector;
 
-    constructor(scene: GameScene, camera: THREE.PerspectiveCamera, 
+    constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, 
         position: THREE.Vector3, debug?: boolean) {
 
-        this.scene = scene;
         this.camera = camera;
 
         this.position = position;
@@ -40,21 +37,22 @@ export default class Vehicle {
         this.width = 1;
         this.length = 1;
 
-        if (debug)
-            this.debug = debug;
+        this.debug = debug;
+        
+        this.render(scene, debug);
     }
 
-    render() {
+    render(scene: THREE.Scene, debug?: boolean) {
         // using cube to simulate vehicle
         let geometry = new THREE.BoxGeometry(1, 1, 1);
         let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.body = new THREE.Mesh(geometry, material);
-        this.body.position.set(this.position.x, this.position.y, this.position.z);        
-        this.scene.add(this.body);
+        this.body.position.set(this.position.x, this.position.y, this.position.z);
+        scene.add(this.body);
 
-        if (this.debug) {
-            this.directionDebug = new DebugVector(this.scene, this.direction, this.position);
-            this.normalDebug = new DebugVector(this.scene, this.direction, this.position);
+        if (debug) {
+            this.directionDebug = new DebugVector(scene, this.direction, this.position);
+            this.normalDebug = new DebugVector(scene, this.direction, this.position);
         }
     }
 
@@ -92,7 +90,7 @@ export default class Vehicle {
         return false;
     }
 
-    handleVehicleMovement(keysPressed: IKeysPressed, 
+    handleVehicleMovement(keysPressed: IControls, 
         dt: number, isOnTrack: boolean) {
 
         // acceleration
@@ -162,7 +160,7 @@ export default class Vehicle {
         this.camera.lookAt(this.body.position.clone().add(this.direction));
     }
 
-    update(keysPressed: IKeysPressed, track?: Track, dt?: number) {
+    update(keysPressed: IControls, track?: Track, dt?: number) {
         
         if (track == undefined || dt == undefined)
             return;
