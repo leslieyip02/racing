@@ -57,16 +57,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
 const dat_gui_1 = __webpack_require__(3);
 const OrbitControls_1 = __webpack_require__(4);
-const Track_1 = __importDefault(__webpack_require__(5));
-const Vehicle_1 = __importDefault(__webpack_require__(6));
-const default_1 = __importDefault(__webpack_require__(7));
+const objects_1 = __webpack_require__(5);
+const tracks_1 = __webpack_require__(9);
 class GameScene extends THREE.Scene {
     constructor() {
         super();
@@ -81,14 +77,10 @@ class GameScene extends THREE.Scene {
         });
         this.renderer.setSize(this.width, this.height);
         // set objects in the scene
-        // this.background = new THREE.Color(0x07205a);
         this.add(new THREE.AmbientLight(0xffffff));
-        this.track = new Track_1.default(this, default_1.default);
-        this.track.render(true);
-        let startPoint = this.track.startPoint.clone();
-        startPoint.y += 0.5;
-        let vehicle = new Vehicle_1.default(this, this.camera, startPoint);
-        vehicle.render();
+        this.track = new objects_1.Track(this, tracks_1.track_0, true);
+        // this.track = new Track(this, track_8, true);
+        let vehicle = new objects_1.Vehicle(this, this.camera, this.track.startPoint, this.track.startDirection, this.track.startRotation, true);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         // set up debugger
@@ -104,23 +96,10 @@ class GameScene extends THREE.Scene {
         vehicleGroup.add(vehicle.position, "z", -100, 100);
         vehicleGroup.open();
         // set up utilities
-        // set up grid
-        let gridHelper = new THREE.GridHelper(1000, 1000, 0x5badfb, 0x5badfb);
-        gridHelper.translateY(-0.2);
-        this.add(gridHelper);
-        // set up axes helper
-        let axesHelper = new THREE.AxesHelper(1000);
-        this.add(axesHelper);
         // set up camera orbital controls
         this.orbitals = new OrbitControls_1.OrbitControls(this.camera, this.renderer.domElement);
         // set up controls
-        this.keysPressed = {
-            "w": false,
-            "a": false,
-            "s": false,
-            "d": false,
-            "shift": false
-        };
+        this.keysPressed = {};
         window.addEventListener("keydown", (e) => {
             this.keysPressed[e.key.toLowerCase()] = true;
         });
@@ -129,8 +108,8 @@ class GameScene extends THREE.Scene {
         });
         // set up window resizing
         window.addEventListener("resize", () => {
-            this.height = window.innerHeight;
             this.width = window.innerWidth;
+            this.height = window.innerHeight;
             this.camera.aspect = this.width / this.height;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(this.width, this.height);
@@ -54546,86 +54525,15 @@ class MapControls extends OrbitControls {
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const THREE = __importStar(__webpack_require__(2));
-class Track {
-    constructor(scene, trackData) {
-        this.scene = scene;
-        this.trackData = trackData;
-    }
-    // creates a catmull-rom spline
-    createCurve(points, extrudeShape, extrudeOptions, material, steps, debug) {
-        if (debug) {
-            let markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            for (let point of points) {
-                let markerGeometry = new THREE.SphereGeometry(1, 4, 2);
-                let marker = new THREE.Mesh(markerGeometry, markerMaterial);
-                marker.position.set(point.x, point.y + 3, point.z);
-                this.scene.add(marker);
-            }
-        }
-        let curve = new THREE.CatmullRomCurve3(points, false);
-        points = curve.getPoints(100);
-        if (debug) {
-            let lineGeometry = new THREE.BufferGeometry()
-                .setFromPoints(points);
-            let lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-            let line = new THREE.Line(lineGeometry, lineMaterial);
-            this.scene.add(line);
-        }
-        extrudeOptions.extrudePath = curve;
-        if (steps)
-            extrudeOptions.steps = steps;
-        let geometry = new THREE.ExtrudeGeometry(extrudeShape, extrudeOptions);
-        let mesh = new THREE.Mesh(geometry, material);
-        return mesh;
-    }
-    createTrack(curves, extrudeShapes, extrudeOptions, material, debug) {
-        let meshes = [];
-        for (let curve of curves) {
-            let points = curve.points;
-            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
-            let mesh = this.createCurve(points, extrudeShape, extrudeOptions, material, null, debug);
-            meshes.push(mesh);
-        }
-        let track = meshes.shift();
-        for (let mesh of meshes) {
-            track.add(mesh);
-        }
-        return track;
-    }
-    render(debug = false) {
-        this.startPoint = this.trackData.startPoint;
-        this.body = this.createTrack(this.trackData.curves, this.trackData.extrudeShapes, this.trackData.extrudeOptions, this.trackData.material, debug);
-        this.scene.add(this.body);
-        let outlineLayer = this.createTrack(this.trackData.curves, this.trackData.outlineExtrudeShapes, this.trackData.extrudeOptions, this.trackData.outlineMaterial, debug);
-        this.scene.add(outlineLayer);
-    }
-}
-exports["default"] = Track;
+exports.Vehicle = exports.Track = void 0;
+var Track_1 = __webpack_require__(6);
+Object.defineProperty(exports, "Track", ({ enumerable: true, get: function () { return __importDefault(Track_1).default; } }));
+var Vehicle_1 = __webpack_require__(8);
+Object.defineProperty(exports, "Vehicle", ({ enumerable: true, get: function () { return __importDefault(Vehicle_1).default; } }));
 
 
 /***/ }),
@@ -54658,31 +54566,191 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
+const debug_1 = __webpack_require__(7);
+class Track {
+    constructor(scene, trackData, debug) {
+        this.startPoint = trackData.startPoint;
+        this.startDirection = trackData.startDirection;
+        this.startRotation = trackData.startRotation;
+        this.render(scene, trackData, debug);
+    }
+    // creates a catmull-rom spline
+    createCurve(points, closed, extrudeShape, extrudeOptions, material, debug, scene) {
+        if (debug && scene)
+            (0, debug_1.debugPoints)(scene, points);
+        let curve = new THREE.CatmullRomCurve3(points, closed);
+        points = curve.getPoints(100);
+        if (debug && scene)
+            (0, debug_1.debugLine)(scene, points);
+        extrudeOptions.extrudePath = curve;
+        let geometry = new THREE.ExtrudeGeometry(extrudeShape, extrudeOptions);
+        let mesh = new THREE.Mesh(geometry, material);
+        return mesh;
+    }
+    // combines curves into a single mesh
+    createTrack(curves, extrudeShapes, extrudeOptions, material, debug, scene) {
+        let meshes = [];
+        for (let curve of curves) {
+            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
+            let mesh = this.createCurve(curve.points, curve.closed, extrudeShape, extrudeOptions, material, debug, scene);
+            meshes.push(mesh);
+        }
+        let track = meshes.shift();
+        for (let mesh of meshes) {
+            track.add(mesh);
+        }
+        return track;
+    }
+    render(scene, trackData, debug) {
+        if (debug)
+            (0, debug_1.debugAxes)(scene);
+        // set up grid
+        let grid = new THREE.GridHelper(1000, 1000, trackData.gridColor, trackData.gridColor);
+        scene.add(grid);
+        // make collision layer invisible and above the road
+        let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
+        this.body = this.createTrack(trackData.curves, trackData.extrudeShapes, trackData.extrudeOptions, transparentMaterial, debug, scene);
+        scene.add(this.body);
+        let surfaceLayer = this.createTrack(trackData.curves, trackData.surfaceExtrudeShapes, trackData.extrudeOptions, trackData.surfaceMaterial, debug, scene);
+        scene.add(surfaceLayer);
+        let outlineLayer = this.createTrack(trackData.curves, trackData.outlineExtrudeShapes, trackData.extrudeOptions, trackData.outlineMaterial, debug, scene);
+        scene.add(outlineLayer);
+    }
+}
+exports["default"] = Track;
+
+
+/***/ }),
+/* 7 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DebugVector = exports.debugLine = exports.debugPoints = exports.debugAxes = void 0;
+const THREE = __importStar(__webpack_require__(2));
+// static debug functions
+function debugAxes(scene, size = 1000) {
+    let helper = new THREE.AxesHelper(size);
+    scene.add(helper);
+}
+exports.debugAxes = debugAxes;
+function debugPoints(scene, points, color = 0xffff00) {
+    let material = new THREE.MeshBasicMaterial({ color: color });
+    for (let point of points) {
+        let geometry = new THREE.SphereGeometry(1, 4, 2);
+        let marker = new THREE.Mesh(geometry, material);
+        marker.position.set(point.x, point.y + 3, point.z);
+        scene.add(marker);
+    }
+}
+exports.debugPoints = debugPoints;
+function debugLine(scene, points, color = 0xffff00) {
+    let geometry = new THREE.BufferGeometry().setFromPoints(points);
+    let material = new THREE.LineBasicMaterial({ color: color });
+    let line = new THREE.Line(geometry, material);
+    scene.add(line);
+}
+exports.debugLine = debugLine;
+// dynamic debug classes that require updates
+class DebugVector {
+    constructor(scene, vector, origin, length = 3, color = 0xffff00) {
+        this.vector = vector;
+        this.origin = origin;
+        this.helper = new THREE.ArrowHelper(this.vector, this.origin, length, color);
+        scene.add(this.helper);
+    }
+    update(vector, origin) {
+        this.vector = vector;
+        this.origin = origin;
+        this.helper.setDirection(this.vector);
+        this.helper.position.set(this.origin.x, this.origin.y, this.origin.z);
+    }
+}
+exports.DebugVector = DebugVector;
+
+
+/***/ }),
+/* 8 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
+const debug_1 = __webpack_require__(7);
+let defaultGravity = new THREE.Vector3(0, -0.008, 0);
 class Vehicle {
-    constructor(scene, camera, position) {
+    constructor(scene, camera, position, direction, rotation, debug) {
         this.manualCamera = false;
-        this.scene = scene;
         this.camera = camera;
         this.position = position;
         this.lastCheckpoint = position;
+        this.direction = direction;
+        this.rotation = rotation;
+        this.gravity = defaultGravity;
         this.velocity = new THREE.Vector3(0, 0, 0);
-        this.direction = new THREE.Vector3(0, 0, 1);
-        this.rotation = new THREE.Euler(0, 0, 0);
-        this.height = 1;
         this.width = 1;
+        this.height = 1;
         this.length = 1;
+        this.debug = debug;
+        this.render(scene, debug);
     }
-    render() {
+    render(scene, debug) {
         // using cube to simulate vehicle
-        let cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        let cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        this.body = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        let geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
+        let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        this.body = new THREE.Mesh(geometry, material);
         this.body.position.set(this.position.x, this.position.y, this.position.z);
-        this.scene.add(this.body);
-        this.directionHelper = new THREE.ArrowHelper(this.direction.clone(), this.position.clone(), 3, 0xff0000);
-        this.normalHelper = new THREE.ArrowHelper(this.direction.clone(), this.position.clone(), 3, 0xff0000);
-        this.scene.add(this.directionHelper);
-        this.scene.add(this.normalHelper);
+        scene.add(this.body);
+        if (debug) {
+            this.directionDebug = new debug_1.DebugVector(scene, this.direction, this.position);
+            this.normalDebug = new debug_1.DebugVector(scene, this.direction, this.position);
+        }
     }
     handleTrackCollision(track) {
         let currentPosition = this.body.position.clone();
@@ -54693,18 +54761,25 @@ class Vehicle {
             let directionVector = globalVertex.sub(this.body.position);
             let ray = new THREE.Raycaster(currentPosition, directionVector.clone().normalize());
             let collisionResults = ray.intersectObjects([track.body]);
-            if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+            if (collisionResults.length > 0 &&
+                collisionResults[0].distance < directionVector.length()) {
                 let collision = collisionResults[0].point;
-                let surfaceNormal = collisionResults[0].face.normal;
-                this.normalHelper.setDirection(surfaceNormal);
-                this.normalHelper.position.set(this.position.x, this.position.y, this.position.z);
                 this.position.y = collision.y + this.height * 0.48;
-                return true;
+                let surfaceNormal = collisionResults[0].face.normal;
+                this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
+                // if normal vector · direction vector is negative,
+                // they are facing in opposite directions,
+                // so the vehicle is moving up a slope
+                let angle = surfaceNormal.clone().angleTo(this.body.up);
+                let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
+                this.rotation.x = up ? -angle : angle;
+                if (this.debug)
+                    this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
+                return;
             }
         }
-        return false;
     }
-    handleVehicleMovement(keysPressed, dt, isOnTrack) {
+    handleVehicleMovement(keysPressed, dt) {
         // acceleration
         if (keysPressed["w"])
             this.velocity.add(this.direction.clone()
@@ -54737,11 +54812,13 @@ class Vehicle {
         }
         // friction
         this.velocity.multiplyScalar(0.98);
-        // apply gravity
-        this.velocity.y = isOnTrack ? 0 : -0.08;
+        // gravity
+        this.velocity.add(this.gravity);
         // update position
         this.position.addVectors(this.position, this.velocity);
         this.body.position.set(this.position.x, this.position.y, this.position.z);
+        if (this.debug)
+            this.directionDebug.update(this.direction.clone(), this.position.clone());
     }
     handleCameraMovement() {
         // set camera behind and above vehicle
@@ -54756,23 +54833,35 @@ class Vehicle {
     update(keysPressed, track, dt) {
         if (track == undefined || dt == undefined)
             return;
-        let isOnTrack = this.handleTrackCollision(track);
-        this.handleVehicleMovement(keysPressed, dt, isOnTrack);
+        this.rotation.x *= 0.9;
+        this.gravity = defaultGravity;
+        this.handleTrackCollision(track);
+        this.handleVehicleMovement(keysPressed, dt);
         if (!this.manualCamera)
             this.handleCameraMovement();
-        this.directionHelper.setDirection(this.direction.clone());
-        this.directionHelper.position.set(this.position.x, this.position.y, this.position.z);
-        if (this.position.y < -8) {
-            this.position = this.lastCheckpoint.clone();
-            this.body.position.set(this.position.x, this.position.y, this.position.z);
-        }
     }
 }
 exports["default"] = Vehicle;
 
 
 /***/ }),
-/* 7 */
+/* 9 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.track_8 = exports.track_0 = void 0;
+var track_0_1 = __webpack_require__(10);
+Object.defineProperty(exports, "track_0", ({ enumerable: true, get: function () { return __importDefault(track_0_1).default; } }));
+var track_8_1 = __webpack_require__(11);
+Object.defineProperty(exports, "track_8", ({ enumerable: true, get: function () { return __importDefault(track_8_1).default; } }));
+
+
+/***/ }),
+/* 10 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -54801,41 +54890,153 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-let defaultTrack = {
-    startPoint: new THREE.Vector3(0, 0, 0),
+let track_0 = {
+    startPoint: new THREE.Vector3(120, 100, 0),
+    startDirection: new THREE.Vector3(0, 0, 1).normalize(),
+    startRotation: new THREE.Euler(0, 0, 0, "YZX"),
     curves: [
         {
             points: [
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(100, 0, 100),
-                new THREE.Vector3(100, 0, 200),
-                new THREE.Vector3(50, 0, 300),
-                new THREE.Vector3(-50, 0, 300),
-                new THREE.Vector3(-100, 0, 200),
-                new THREE.Vector3(-100, 0, 100),
-                new THREE.Vector3(-75, 0, 75),
+                new THREE.Vector3(120, 90, 0),
+                new THREE.Vector3(80, 40, 200),
+                new THREE.Vector3(-80, 90, 200),
+                new THREE.Vector3(-120, 60, 0),
+                new THREE.Vector3(-80, 110, -200),
+                new THREE.Vector3(80, 60, -200),
             ],
+            closed: true,
+            extrudeShapeIndex: 1
+        },
+        // {
+        //     points: [
+        //         new THREE.Vector3(120, 70, 0),
+        //         new THREE.Vector3(80, 70, 200),
+        //         new THREE.Vector3(-80, 90, 200),
+        //         new THREE.Vector3(-120, 10, 0),
+        //         new THREE.Vector3(-80, 30, -200),
+        //         new THREE.Vector3(80, 30, -200),
+        //     ],
+        //     closed: true,
+        //     extrudeShapeIndex: 1
+        // },
+    ],
+    extrudeShapes: [
+        new THREE.Shape([
+            new THREE.Vector2(0, 7.0),
+            new THREE.Vector2(0, -7.0),
+        ]),
+        new THREE.Shape([
+            new THREE.Vector2(7.0, 0),
+            new THREE.Vector2(-7.0, 0),
+        ])
+    ],
+    surfaceExtrudeShapes: [
+        new THREE.Shape([
+            new THREE.Vector2(0.2, 6),
+            new THREE.Vector2(0.2, -6),
+        ]),
+        new THREE.Shape([
+            new THREE.Vector2(6, 0.2),
+            new THREE.Vector2(-6, 0.2),
+        ])
+    ],
+    outlineExtrudeShapes: [
+        new THREE.Shape([
+            new THREE.Vector2(0.3, 7.0),
+            new THREE.Vector2(0.3, -7.0),
+        ]),
+        new THREE.Shape([
+            new THREE.Vector2(7.0, 0.3),
+            new THREE.Vector2(-7.0, 0.3),
+        ])
+    ],
+    extrudeOptions: {
+        steps: 640,
+        bevelEnabled: true,
+    },
+    surfaceMaterial: new THREE.MeshLambertMaterial({
+        color: 0x000e54,
+        wireframe: false
+    }),
+    outlineMaterial: new THREE.MeshStandardMaterial({
+        color: 0x99ccff,
+        wireframe: false
+    }),
+    gridColor: 0x5badfb
+};
+exports["default"] = track_0;
+
+
+/***/ }),
+/* 11 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
+let track_8 = {
+    startPoint: new THREE.Vector3(0, 1, 0),
+    startDirection: new THREE.Vector3(1, 0, 1).normalize(),
+    startRotation: new THREE.Euler(0, Math.PI / 4, 0, "YZX"),
+    curves: [
+        {
+            points: [
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(100, 1, 100),
+                new THREE.Vector3(100, 1, 200),
+                new THREE.Vector3(50, 1, 300),
+                new THREE.Vector3(-50, 1, 300),
+                new THREE.Vector3(-100, 1, 200),
+                new THREE.Vector3(-100, 1, 100),
+                new THREE.Vector3(-75, 1, 75),
+            ],
+            closed: false,
             extrudeShapeIndex: 0
         },
         {
             points: [
-                new THREE.Vector3(75, 0, -75),
-                new THREE.Vector3(100, 0, -100),
-                new THREE.Vector3(100, 0, -200),
-                new THREE.Vector3(50, 0, -300),
-                new THREE.Vector3(-50, 0, -300),
-                new THREE.Vector3(-100, 0, -200),
-                new THREE.Vector3(-100, 0, -100),
-                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(-75, 1, 75),
+                new THREE.Vector3(0, 11, 0),
+                new THREE.Vector3(75, 1, -75),
             ],
+            closed: false,
             extrudeShapeIndex: 0
         },
         {
             points: [
-                new THREE.Vector3(-75, 0, 75),
-                new THREE.Vector3(0, 10, 0),
-                new THREE.Vector3(75, 0, -75),
+                new THREE.Vector3(75, 1, -75),
+                new THREE.Vector3(100, 1, -100),
+                new THREE.Vector3(100, 1, -200),
+                new THREE.Vector3(50, 1, -300),
+                new THREE.Vector3(-50, 1, -300),
+                new THREE.Vector3(-100, 1, -200),
+                new THREE.Vector3(-100, 1, -100),
+                new THREE.Vector3(0, 1, 0),
             ],
+            closed: false,
             extrudeShapeIndex: 0
         }
     ],
@@ -54849,30 +55050,41 @@ let defaultTrack = {
             new THREE.Vector2(-5, 0),
         ])
     ],
-    outlineExtrudeShapes: [
+    surfaceExtrudeShapes: [
         new THREE.Shape([
-            new THREE.Vector2(0.1, 5.6),
-            new THREE.Vector2(0.1, -5.6),
+            new THREE.Vector2(0.2, 5),
+            new THREE.Vector2(0.2, -5),
         ]),
         new THREE.Shape([
-            new THREE.Vector2(5.6, -0.1),
-            new THREE.Vector2(-5.6, -0.1),
+            new THREE.Vector2(5, -0.2),
+            new THREE.Vector2(-5, -0.2),
+        ])
+    ],
+    outlineExtrudeShapes: [
+        new THREE.Shape([
+            new THREE.Vector2(0.3, 5.6),
+            new THREE.Vector2(0.3, -5.6),
+        ]),
+        new THREE.Shape([
+            new THREE.Vector2(5.6, -0.3),
+            new THREE.Vector2(-5.6, -0.3),
         ])
     ],
     extrudeOptions: {
         steps: 640,
         bevelEnabled: true,
     },
-    material: new THREE.MeshLambertMaterial({
+    surfaceMaterial: new THREE.MeshLambertMaterial({
         color: 0x000e54,
         wireframe: false
     }),
     outlineMaterial: new THREE.MeshStandardMaterial({
         color: 0x99ccff,
         wireframe: false
-    })
+    }),
+    gridColor: 0x5badfb
 };
-exports["default"] = defaultTrack;
+exports["default"] = track_8;
 
 
 /***/ })
