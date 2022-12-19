@@ -4,12 +4,18 @@ import { debugAxes, debugPoints, debugLine } from "../utils/debug";
 
 export default class Track {    
     startPoint: THREE.Vector3;
+    startDirection: THREE.Vector3;
+    startRotation: THREE.Euler;
+
     body: THREE.Mesh;
 
     constructor(scene: THREE.Scene, trackData: ITrackData,
         debug?: boolean) {
 
         this.startPoint = trackData.startPoint;
+        this.startDirection = trackData.startDirection;
+        this.startRotation = trackData.startRotation;
+        
         this.render(scene, trackData, debug);
     }
 
@@ -61,11 +67,18 @@ export default class Track {
     render(scene: THREE.Scene, trackData: ITrackData, debug?: boolean) {
         if (debug)
             debugAxes(scene);
-        
+
+        // make collision layer invisible and above the road
+        let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
         this.body = this.createTrack(trackData.curves, 
             trackData.extrudeShapes, trackData.extrudeOptions, 
-            trackData.material, debug, scene);
+            transparentMaterial, debug, scene);
         scene.add(this.body);
+        
+        let surfaceLayer = this.createTrack(trackData.curves, 
+            trackData.surfaceExtrudeShapes, trackData.extrudeOptions, 
+            trackData.material, debug, scene);
+        scene.add(surfaceLayer);
 
         let outlineLayer = this.createTrack(trackData.curves, 
             trackData.outlineExtrudeShapes, trackData.extrudeOptions, 

@@ -9,8 +9,11 @@ interface ICurveData {
 
 interface ITrackData {
     startPoint: THREE.Vector3,
+    startDirection: THREE.Vector3,
+    startRotation: THREE.Euler,
     curves: Array<ICurveData>,
     extrudeShapes: Array<THREE.Shape>,
+    surfaceExtrudeShapes: Array<THREE.Shape>,
     outlineExtrudeShapes: Array<THREE.Shape>,
     extrudeOptions: THREE.ExtrudeGeometryOptions,
     material: THREE.Material,

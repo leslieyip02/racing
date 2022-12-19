@@ -9,13 +9,14 @@ export default class Vehicle {
 
     position: THREE.Vector3;
     lastCheckpoint: THREE.Vector3;
-    velocity: THREE.Vector3;
     direction: THREE.Vector3;
     rotation: THREE.Euler;
+    gravity: THREE.Vector3;
+    velocity: THREE.Vector3;
 
     body: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
-    height: number;
     width: number;
+    height: number;
     length: number;
 
     debug?: boolean;
@@ -23,18 +24,20 @@ export default class Vehicle {
     normalDebug: DebugVector;
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, 
-        position: THREE.Vector3, debug?: boolean) {
+        position: THREE.Vector3, direction: THREE.Vector3, 
+        rotation: THREE.Euler, debug?: boolean) {
 
         this.camera = camera;
 
         this.position = position;
         this.lastCheckpoint = position;
+        this.direction = direction;
+        this.rotation = rotation;
+        this.gravity = new THREE.Vector3(0, 0, 0);
         this.velocity = new THREE.Vector3(0, 0, 0);
-        this.direction = new THREE.Vector3(0, 0, 1);
-        this.rotation = new THREE.Euler(0, 0, 0);
         
-        this.height = 1;
         this.width = 1;
+        this.height = 1;
         this.length = 1;
 
         this.debug = debug;
@@ -44,7 +47,7 @@ export default class Vehicle {
 
     render(scene: THREE.Scene, debug?: boolean) {
         // using cube to simulate vehicle
-        let geometry = new THREE.BoxGeometry(1, 1, 1);
+        let geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
         let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.body = new THREE.Mesh(geometry, material);
         this.body.position.set(this.position.x, this.position.y, this.position.z);
@@ -56,7 +59,7 @@ export default class Vehicle {
         }
     }
 
-    handleTrackCollision(track: Track): boolean {        
+    handleTrackCollision(track: Track) {        
         let currentPosition = this.body.position.clone();
 
         // use raycasting to check for collison with track
@@ -78,20 +81,26 @@ export default class Vehicle {
                 let collision = collisionResults[0].point;
                 this.position.y = collision.y + this.height * 0.48;
                 
-                if (this.debug) {
-                    let surfaceNormal = collisionResults[0].face.normal;
+                let surfaceNormal = collisionResults[0].face.normal;
+                this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
+
+                // if normal vector · direction vector is negative,
+                // they are facing in opposite directions,
+                // so the vehicle is moving up a slope
+                let angle = surfaceNormal.clone().angleTo(this.body.up);
+                let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
+                this.rotation.x = up ? -angle : angle;
+
+                if (this.debug)
                     this.normalDebug.update(surfaceNormal, this.position.clone());
-                }
                 
-                return true;
+                return;
             }
         }
-
-        return false;
     }
 
     handleVehicleMovement(keysPressed: IControls, 
-        dt: number, isOnTrack: boolean) {
+        dt: number) {
 
         // acceleration
         if (keysPressed["w"])
@@ -136,8 +145,8 @@ export default class Vehicle {
         // friction
         this.velocity.multiplyScalar(0.98);
         
-        // apply gravity
-        this.velocity.y = isOnTrack ? 0 : -0.08;
+        // gravity
+        this.velocity.add(this.gravity);
 
         // update position
         this.position.addVectors(this.position, this.velocity);
@@ -165,8 +174,8 @@ export default class Vehicle {
         if (track == undefined || dt == undefined)
             return;
 
-        let isOnTrack = this.handleTrackCollision(track);
-        this.handleVehicleMovement(keysPressed, dt, isOnTrack);
+        this.handleTrackCollision(track);
+        this.handleVehicleMovement(keysPressed, dt);
 
         if (!this.manualCamera)
            this.handleCameraMovement();

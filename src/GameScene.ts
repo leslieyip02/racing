@@ -12,8 +12,8 @@ export default class GameScene extends THREE.Scene {
     renderer: THREE.Renderer;
     orbitals: OrbitControls;
 
-    height: number;
     width: number;
+    height: number;
 
     keysPressed: IControls;
 
@@ -43,10 +43,11 @@ export default class GameScene extends THREE.Scene {
 
         this.track = new Track(this, defaultTrack, true);
 
-        let startPoint = this.track.startPoint.clone();
-        startPoint.y += 0.5;
+        // let startPoint = this.track.startPoint.clone();
+        // startPoint.y += 0.5;
 
-        let vehicle = new Vehicle(this, this.camera, startPoint, true);
+        let vehicle = new Vehicle(this, this.camera, this.track.startPoint,
+            this.track.startDirection, this.track.startRotation, true);
         
         this.vehicles = [];
         this.vehicles.push(vehicle);
@@ -88,8 +89,8 @@ export default class GameScene extends THREE.Scene {
 
         // set up window resizing
         window.addEventListener("resize", () => {
-            this.height = window.innerHeight;
             this.width = window.innerWidth;
+            this.height = window.innerHeight;
 
             this.camera.aspect = this.width / this.height;
             this.camera.updateProjectionMatrix();
