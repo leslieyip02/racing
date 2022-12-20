@@ -81,7 +81,7 @@ export default class Vehicle {
             if (collisionResults.length > 0 && 
                 collisionResults[0].distance < directionVector.length()) {
                 let collision = collisionResults[0].point;
-                this.position.y = collision.y + this.height * 0.48;
+                this.position.y = collision.y;
                 
                 let surfaceNormal = collisionResults[0].face.normal;
                 this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
@@ -153,8 +153,7 @@ export default class Vehicle {
         this.body.position.set(this.position.x, this.position.y, this.position.z);
 
         if (this.debug)
-            this.directionDebug.update(this.direction.clone(), 
-                this.position.clone());
+            this.directionDebug.update(this.direction.clone(), this.position.clone());
     }
 
     handleCameraMovement() {
