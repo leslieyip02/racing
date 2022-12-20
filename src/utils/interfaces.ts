@@ -19,6 +19,7 @@ interface ITrackData {
     extrudeOptions: THREE.ExtrudeGeometryOptions,
     surfaceMaterial: THREE.Material,
     outlineMaterial: THREE.Material,
+    backgroundColors: Array<string>,
     gridColor: number | THREE.Color
 }
 

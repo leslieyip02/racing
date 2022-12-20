@@ -66,7 +66,12 @@ export default class Track {
     render(scene: THREE.Scene, trackData: ITrackData, debug?: boolean) {
         if (debug)
             debugAxes(scene);
-
+        
+        // set up background gradient
+        let background = `linear-gradient(${trackData.backgroundColors.join(", ")})`;
+        document.getElementsByTagName("body")[0].style
+            .background = background;
+        
         // set up grid
         let grid = new THREE.GridHelper(1000, 1000, 
             trackData.gridColor, trackData.gridColor);

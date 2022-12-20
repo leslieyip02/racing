@@ -86,6 +86,7 @@ let track_8: ITrackData = {
         color: 0x99ccff, 
         wireframe: false 
     }),
+    backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 }
 
