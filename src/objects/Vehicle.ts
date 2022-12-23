@@ -156,16 +156,27 @@ export default class Vehicle {
             this.directionDebug.update(this.direction.clone(), this.position.clone());
     }
 
-    handleCameraMovement() {
-        // set camera behind and above vehicle
-        let position = this.body.position.clone()
-            .sub(this.direction.clone()
-            .multiplyScalar(3));
-        position.y = this.body.position.y + 1.5;
+    handleCameraMovement(forward: boolean) {
+        if (forward) {
+            // set camera behind and above vehicle
+            let position = this.body.position.clone()
+                .sub(this.direction.clone()
+                .multiplyScalar(3));
+            position.y = this.body.position.y + 1.5;
+    
+            // look forward
+            this.camera.position.set(position.x, position.y, position.z);
+            this.camera.lookAt(this.body.position.clone().add(this.direction));
+        } else {
+            let position = this.body.position.clone()
+                .add(this.direction.clone()
+                .multiplyScalar(3));
+            position.y = this.body.position.y + 1.5;
+    
+            this.camera.position.set(position.x, position.y, position.z);
+            this.camera.lookAt(this.body.position.clone().sub(this.direction));
+        }
 
-        // look forward
-        this.camera.position.set(position.x, position.y, position.z);
-        this.camera.lookAt(this.body.position.clone().add(this.direction));
     }
 
     update(keysPressed: IControls, track?: Track, dt?: number) {
@@ -178,7 +189,9 @@ export default class Vehicle {
         this.handleTrackCollision(track);
         this.handleVehicleMovement(keysPressed, dt);
 
-        if (!this.manualCamera)
-           this.handleCameraMovement();
+        if (!this.manualCamera) {
+            let forward = !keysPressed["r"];
+            this.handleCameraMovement(forward);
+        }
     }
 }
