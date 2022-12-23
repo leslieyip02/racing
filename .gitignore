@@ -1,5 +1,7 @@
 node_modules
 dist
 
+assets/models/blender
+
 desktop.ini
 .vscode

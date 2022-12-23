@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import Track from "./Track";
-import { IControls } from "../utils/interfaces";
+import { IControls, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
+import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 let defaultGravity = new THREE.Vector3(0, -0.008, 0);
 
@@ -15,19 +16,27 @@ export default class Vehicle {
     rotation: THREE.Euler;
     gravity: THREE.Vector3;
     velocity: THREE.Vector3;
-
-    body: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
+    
+    acceleration: number;
+    deceleration: number;
+    friction: number;
+    turnRate: number;
+    maxRoll: number;
+    
     width: number;
     height: number;
     length: number;
+    
+    model: THREE.Object3D;
+    hitbox: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
 
     debug?: boolean;
     directionDebug: DebugVector;
     normalDebug: DebugVector;
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, 
-        position: THREE.Vector3, direction: THREE.Vector3, 
-        rotation: THREE.Euler, debug?: boolean) {
+        vehicleData: IVehicleData, position: THREE.Vector3, 
+        direction: THREE.Vector3, rotation: THREE.Euler, debug?: boolean) {
 
         this.camera = camera;
 
@@ -38,22 +47,45 @@ export default class Vehicle {
         this.gravity = defaultGravity;
         this.velocity = new THREE.Vector3(0, 0, 0);
         
-        this.width = 1;
-        this.height = 1;
-        this.length = 1;
+        this.acceleration = vehicleData.acceleration;
+        this.deceleration = vehicleData.deceleration;
+        this.friction = vehicleData.friction;
+        this.turnRate = vehicleData.turnRate;
+        this.maxRoll = vehicleData.maxRoll;
+
+        this.width = vehicleData.width;
+        this.height = vehicleData.height;
+        this.length = vehicleData.length;
 
         this.debug = debug;
         
-        this.render(scene, debug);
+        this.render(scene, vehicleData.modelPath, debug);
     }
 
-    render(scene: THREE.Scene, debug?: boolean) {
-        // using cube to simulate vehicle
+    loadGLTF(scene: THREE.Scene, data: GLTF) {
+        this.model = data.scene;
+        this.model.position.set(this.position.x, this.position.y, this.position.z);
+        scene.add(this.model);
+    }
+
+    async render(scene: THREE.Scene, modelPath: string, debug?: boolean) {        
+        // async render model
+        let loader = new GLTFLoader();
+        await loader.loadAsync(modelPath)
+            .then(data => this.loadGLTF(scene, data));     
+        
+        // vehicle hitbox
         let geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
-        let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        this.body = new THREE.Mesh(geometry, material);
-        this.body.position.set(this.position.x, this.position.y, this.position.z);
-        scene.add(this.body);
+        let material = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00, 
+            wireframe: true, 
+            transparent: !debug,
+            opacity: 0
+        });
+
+        this.hitbox = new THREE.Mesh(geometry, material);
+        this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
+        scene.add(this.hitbox);
 
         if (debug) {
             this.directionDebug = new DebugVector(scene, this.direction, this.position);
@@ -61,19 +93,19 @@ export default class Vehicle {
         }
     }
 
-    handleTrackCollision(track: Track) {  
-        let currentPosition = this.body.position.clone();
+    handleTrackCollision(track: Track) {
+        let currentPosition = this.position.clone();
 
         // use raycasting to check for collison with track
-        for (let i = 0; i < this.body.geometry.attributes.position.count; i++) {
+        for (let i = 0; i < this.hitbox.geometry.attributes.position.count; i++) {
             let localVertex = new THREE.Vector3(
-                this.body.geometry.attributes.position.array[i * 3],
-                this.body.geometry.attributes.position.array[i * 3 + 1],
-                this.body.geometry.attributes.position.array[i * 3 + 2]
+                this.hitbox.geometry.attributes.position.array[i * 3],
+                this.hitbox.geometry.attributes.position.array[i * 3 + 1],
+                this.hitbox.geometry.attributes.position.array[i * 3 + 2]
             );
             
-            let globalVertex = localVertex.applyMatrix4(this.body.matrix);
-            let directionVector = globalVertex.sub(this.body.position);
+            let globalVertex = localVertex.applyMatrix4(this.hitbox.matrix);
+            let directionVector = globalVertex.sub(this.hitbox.position);
 
             let ray = new THREE.Raycaster(currentPosition, directionVector.clone().normalize());
             let collisionResults = ray.intersectObjects([track.body]);
@@ -86,14 +118,23 @@ export default class Vehicle {
                 let surfaceNormal = collisionResults[0].face.normal;
                 this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
 
-                // if normal vector · direction vector is negative,
-                // they are facing in opposite directions,
-                // so the vehicle is moving up a slope
-                let angle = surfaceNormal.clone().angleTo(this.body.up);
-                let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
-                this.rotation.x = up ? -angle : angle;
+                // stop model from flipping when it clips below the track 
+                // and surfaceNormal points downwards
+                if (surfaceNormal.y >= 0) {
+                    // if normal vector · direction vector is negative,
+                    // they are facing in opposite directions,
+                    // so the vehicle is moving up a slope
+                    let angle = surfaceNormal.clone().angleTo(this.hitbox.up);
+                    let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
+    
+                    if (up)
+                        angle = 2 * Math.PI - angle;
+    
+                    this.rotation.x = angle;
+                }
 
-                if (this.debug)
+
+                if (this.debug && this.normalDebug)
                     this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
                 
                 return;
@@ -105,54 +146,58 @@ export default class Vehicle {
         // acceleration
         if (keysPressed["w"])
             this.velocity.add(this.direction.clone()
-                .multiplyScalar(0.001 * dt));
+                .multiplyScalar(this.acceleration * dt));
 
         // deceleration
         if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
-                .multiplyScalar(0.0005 * dt));
+                .multiplyScalar(this.deceleration * dt));
 
         // turning
         if (keysPressed["d"]) {
-            let angle = -0.0008 * dt;
+            let angle = -this.turnRate * dt;
 
             // yaw
             this.rotation.y += angle;
             
             // roll
-            this.rotation.z = Math.min(this.rotation.z - angle, 0.3);
+            this.rotation.z = Math.min(this.rotation.z - angle, this.maxRoll);
             
-            this.body.setRotationFromEuler(this.rotation);
-            this.direction.applyAxisAngle(this.body.up, angle);
+            this.model.setRotationFromEuler(this.rotation.clone());
+            this.hitbox.setRotationFromEuler(this.rotation.clone());
+            this.direction.applyAxisAngle(this.hitbox.up, angle);
         }
         
         if (keysPressed["a"]) {
-            let angle = 0.0008 * dt;
+            let angle = this.turnRate * dt;
             
             this.rotation.y += angle;            
-            this.rotation.z = Math.max(this.rotation.z - angle, -0.3);
+            this.rotation.z = Math.max(this.rotation.z - angle, -this.maxRoll);
             
-            this.body.setRotationFromEuler(this.rotation);
-            this.direction.applyAxisAngle(this.body.up, angle);
+            this.model.setRotationFromEuler(this.rotation.clone());
+            this.hitbox.setRotationFromEuler(this.rotation.clone());
+            this.direction.applyAxisAngle(this.hitbox.up, angle);
         }
         
         // reset roll
         if (!(keysPressed["a"] || keysPressed["d"])) {
             this.rotation.z *= 0.8;            
-            this.body.setRotationFromEuler(this.rotation);
+            this.model.setRotationFromEuler(this.rotation.clone());
+            this.hitbox.setRotationFromEuler(this.rotation.clone());
         }
         
         // friction
-        this.velocity.multiplyScalar(0.98);
+        this.velocity.multiplyScalar(this.friction);
         
         // gravity
         this.velocity.add(this.gravity);
 
         // update position
-        this.position.addVectors(this.position, this.velocity);
-        this.body.position.set(this.position.x, this.position.y, this.position.z);
+        this.position.add(this.velocity);
+        this.model.position.set(this.position.x, this.position.y, this.position.z);
+        this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
 
-        if (this.debug)
+        if (this.debug && this.directionDebug)
             this.directionDebug.update(this.direction.clone(), this.position.clone());
     }
 
@@ -163,11 +208,11 @@ export default class Vehicle {
         
         if (forward) {
             // set camera behind and above vehicle
-            cameraPosition = cameraPosition.sub(offset);            
-            lookAtPosition = lookAtPosition.add(this.direction);
+            cameraPosition.sub(offset);            
+            lookAtPosition.add(this.direction);
         } else {
-            cameraPosition = cameraPosition.add(offset);
-            lookAtPosition = lookAtPosition.sub(this.direction);
+            cameraPosition.add(offset);
+            lookAtPosition.sub(this.direction);
         }
 
         cameraPosition.y = cameraPosition.y + 1.5;
@@ -176,10 +221,9 @@ export default class Vehicle {
     }
 
     update(keysPressed: IControls, track?: Track, dt?: number) {
-        if (track == undefined || dt == undefined)
+        if (!this.model || !this.hitbox || !track || !dt)
             return;
 
-        this.rotation.x *= 0.9;
         this.gravity = defaultGravity;
 
         this.handleTrackCollision(track);

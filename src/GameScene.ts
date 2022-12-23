@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Track, Vehicle } from "./objects/objects";
 import { IControls } from "./utils/interfaces";
 import { track_0, track_8, track_y } from "../data/tracks/tracks";
+import { bike } from "../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -40,11 +41,11 @@ export default class GameScene extends THREE.Scene {
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
 
-        // this.track = new Track(this, track_0, true);
+        this.track = new Track(this, track_0, true);
         // this.track = new Track(this, track_8, true);
-        this.track = new Track(this, track_y, true);
+        // this.track = new Track(this, track_y, true);
 
-        let vehicle = new Vehicle(this, this.camera, this.track.startPoint,
+        let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, true);
         
         this.vehicles = [];

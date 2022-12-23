@@ -24,9 +24,17 @@ interface ITrackData {
 }
 
 interface IVehicleData {
+    modelPath: string,
+
     acceleration: number,
+    deceleration: number,
     friction: number,
-    turnRate: number
+    turnRate: number,
+    maxRoll: number,
+    
+    width: number,
+    height: number,
+    length: number
 }
 
 export {
