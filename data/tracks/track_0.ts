@@ -33,12 +33,12 @@ let track_0: ITrackData = {
     ],
     extrudeShapes: [
         new THREE.Shape([
-            new THREE.Vector2(0, 7.0),
-            new THREE.Vector2(0, -7.0),
+            new THREE.Vector2(0, 7),
+            new THREE.Vector2(0, -7),
         ]),
         new THREE.Shape([
-            new THREE.Vector2(7.0, 0),
-            new THREE.Vector2(-7.0, 0),
+            new THREE.Vector2(7, 0),
+            new THREE.Vector2(-7, 0),
         ])
     ],
     surfaceExtrudeShapes: [
@@ -53,12 +53,12 @@ let track_0: ITrackData = {
     ],
     outlineExtrudeShapes: [
         new THREE.Shape([
-            new THREE.Vector2(0.5, 7.0),
-            new THREE.Vector2(0.5, -7.0),
+            new THREE.Vector2(0.5, 7),
+            new THREE.Vector2(0.5, -7),
         ]),
         new THREE.Shape([
-            new THREE.Vector2(7.0, 0.5),
-            new THREE.Vector2(-7.0, 0.5),
+            new THREE.Vector2(7, 0.5),
+            new THREE.Vector2(-7, 0.5),
         ])
     ],
     extrudeOptions: {

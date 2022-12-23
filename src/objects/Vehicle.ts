@@ -157,26 +157,22 @@ export default class Vehicle {
     }
 
     handleCameraMovement(forward: boolean) {
+        let cameraPosition = this.position.clone();
+        let lookAtPosition = this.position.clone();
+        let offset = this.direction.clone().multiplyScalar(3);
+        
         if (forward) {
             // set camera behind and above vehicle
-            let position = this.body.position.clone()
-                .sub(this.direction.clone()
-                .multiplyScalar(3));
-            position.y = this.body.position.y + 1.5;
-    
-            // look forward
-            this.camera.position.set(position.x, position.y, position.z);
-            this.camera.lookAt(this.body.position.clone().add(this.direction));
+            cameraPosition = cameraPosition.sub(offset);            
+            lookAtPosition = lookAtPosition.add(this.direction);
         } else {
-            let position = this.body.position.clone()
-                .add(this.direction.clone()
-                .multiplyScalar(3));
-            position.y = this.body.position.y + 1.5;
-    
-            this.camera.position.set(position.x, position.y, position.z);
-            this.camera.lookAt(this.body.position.clone().sub(this.direction));
+            cameraPosition = cameraPosition.add(offset);
+            lookAtPosition = lookAtPosition.sub(this.direction);
         }
 
+        cameraPosition.y = cameraPosition.y + 1.5;
+        this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        this.camera.lookAt(lookAtPosition);
     }
 
     update(keysPressed: IControls, track?: Track, dt?: number) {
