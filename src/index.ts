@@ -1,7 +1,7 @@
 import GameScene from "./GameScene";
 
 // set up scene
-let scene = new GameScene();
+let scene = new GameScene(true);
 
 // keep track of time
 let currentTime = 0;
@@ -12,7 +12,7 @@ function animate(timestamp?: number) {
     currentTime = timestamp;
 
     scene.camera.updateProjectionMatrix();
-    scene.renderer.render(scene, scene.camera);
+    scene.composer.render();
 
     if (scene.orbitals)
         scene.orbitals.update()

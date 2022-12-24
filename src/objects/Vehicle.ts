@@ -30,9 +30,8 @@ export default class Vehicle {
     model: THREE.Object3D;
     hitbox: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
 
-    debug?: boolean;
-    directionDebug: DebugVector;
-    normalDebug: DebugVector;
+    directionDebug?: DebugVector;
+    normalDebug?: DebugVector;
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, 
         vehicleData: IVehicleData, position: THREE.Vector3, 
@@ -56,8 +55,6 @@ export default class Vehicle {
         this.width = vehicleData.width;
         this.height = vehicleData.height;
         this.length = vehicleData.length;
-
-        this.debug = debug;
         
         this.render(scene, vehicleData.modelPath, debug);
     }
@@ -134,7 +131,7 @@ export default class Vehicle {
                 }
 
 
-                if (this.debug && this.normalDebug)
+                if (this.normalDebug)
                     this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
                 
                 return;
@@ -197,7 +194,7 @@ export default class Vehicle {
         this.model.position.set(this.position.x, this.position.y, this.position.z);
         this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
 
-        if (this.debug && this.directionDebug)
+        if (this.directionDebug)
             this.directionDebug.update(this.direction.clone(), this.position.clone());
     }
 

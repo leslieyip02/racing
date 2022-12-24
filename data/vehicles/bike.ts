@@ -7,7 +7,7 @@ let bike: IVehicleData = {
     deceleration: 0.0005,
     friction: 0.98,
     turnRate: 0.0008,
-    maxRoll: 0.3,
+    maxRoll: 0.36,
 
     width: 1,
     height: 1.2,
