@@ -3,6 +3,7 @@ import Track from "./Track";
 import { IControls, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { Material } from "three";
 
 let defaultGravity = new THREE.Vector3(0, -0.008, 0);
 
@@ -27,7 +28,7 @@ export default class Vehicle {
     height: number;
     length: number;
     
-    model: THREE.Object3D;
+    model: THREE.Group;
     hitbox: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
 
     directionDebug?: DebugVector;
@@ -62,6 +63,28 @@ export default class Vehicle {
     loadGLTF(scene: THREE.Scene, data: GLTF) {
         this.model = data.scene;
         this.model.position.set(this.position.x, this.position.y, this.position.z);
+
+        // check for and enable transparent materials
+        for (let mesh of this.model.children) {
+            // the model itself is a THREE.Group
+            if (mesh.name == "body") {
+
+                // the model contains an array of THREE.Mesh,
+                // but the compiler thinks it's an array of
+                // THREE.Object3d<THREE.Event>, 
+                // so the type errors have been silenced
+                for (let material of mesh.children) {
+                    // @ts-ignore
+                    if (material.material.name == "transparent") {
+                        // @ts-ignore
+                        material.material.transparent = true;
+                        // @ts-ignore
+                        material.material.opacity = 0.2;
+                    }
+                }
+            }
+        }
+
         scene.add(this.model);
     }
 

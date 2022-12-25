@@ -7,7 +7,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { Track, Vehicle } from "./objects/objects";
 import { IControls } from "./utils/interfaces";
 import { track_0, track_8, track_y } from "../data/tracks/tracks";
-import { bike } from "../data/vehicles/vehicles";
+import { bike, mustang } from "../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -88,7 +88,9 @@ export default class GameScene extends THREE.Scene {
         // this.track = new Track(this, track_8, debug);
         // this.track = new Track(this, track_y, debug);
 
-        let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
+        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
+        //     this.track.startDirection, this.track.startRotation, debug);
+        let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, debug);
         
         this.vehicles = [];
