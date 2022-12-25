@@ -1,6 +1,7 @@
 @echo off
 
-:: copy models
+:: copy all assets
+xcopy "./assets" "./dist/assets" /c /y
 xcopy "./assets/models" "./dist/assets/models" /c /y
 
 :: copy css
