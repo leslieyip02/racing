@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ICurveData, ITrackData } from "../utils/interfaces";
+import { ICurveData, ITrackData, IPlatform } from "../utils/interfaces";
 import { debugAxes, debugPoints, debugLine } from "../utils/debug";
 
 export default class Track {    
@@ -8,6 +8,8 @@ export default class Track {
     startRotation: THREE.Euler;
 
     body: THREE.Mesh;
+    movingPlatforms: Array<IPlatform>;
+    elapsedTime: number;
 
     constructor(scene: THREE.Scene, trackData: ITrackData,
         debug?: boolean) {
@@ -16,6 +18,8 @@ export default class Track {
         this.startDirection = trackData.startDirection;
         this.startRotation = trackData.startRotation;
         
+        this.elapsedTime = 0;
+
         this.render(scene, trackData, debug);
     }
 
@@ -52,13 +56,24 @@ export default class Track {
             let mesh = this.createCurve(curve.points, curve.closed,
                 extrudeShape, extrudeOptions, material, debug, scene);
             
-            meshes.push(mesh);
+            if (curve.moving) {
+                let platform = {
+                    mesh: mesh,
+                    origin: mesh.position.clone(),
+                    direction: curve.direction,
+                    period: curve.period,
+                    phase: curve.phase
+                }
+
+                this.movingPlatforms.push(platform);
+            } else {
+                meshes.push(mesh);
+            }
         }
 
         let track = meshes.shift();
-        for (let mesh of meshes) {
+        for (let mesh of meshes)
             track.add(mesh);
-        }
 
         return track;
     }
@@ -77,6 +92,9 @@ export default class Track {
             trackData.gridColor, trackData.gridColor);
         scene.add(grid);    
 
+        // set up movingData platforms
+        this.movingPlatforms = [];
+
         // make collision layer invisible and above the road
         let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
         this.body = this.createTrack(trackData.curves, 
@@ -93,5 +111,33 @@ export default class Track {
             trackData.outlineExtrudeShapes, trackData.extrudeOptions, 
             trackData.outlineMaterial, debug, scene);
         scene.add(outlineLayer);
+
+        for (let platform of this.movingPlatforms)
+        {
+            console.log(platform.mesh)
+            scene.add(platform.mesh);
+        }
+    }
+
+    update(dt?: number) {
+        if (!dt)
+            return;
+
+        this.elapsedTime += dt;
+        
+        for (let platform of this.movingPlatforms) {
+            let time = (this.elapsedTime + platform.phase) % platform.period;
+            let phase = 2 * Math.PI * (time / platform.period);
+            let offset = platform.direction.clone()
+                .multiplyScalar(Math.sin(phase));
+
+            let position = platform.origin.clone()
+                .add(offset);
+
+            console.log(time, phase, Math.sin(phase), offset, position)
+            // debugger
+
+            platform.mesh.position.set(position.x, position.y, position.z);
+        }
     }
 }

@@ -3,7 +3,6 @@ import Track from "./Track";
 import { IControls, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { Material } from "three";
 
 let defaultGravity = new THREE.Vector3(0, -0.008, 0);
 
@@ -128,8 +127,12 @@ export default class Vehicle {
             let directionVector = globalVertex.sub(this.hitbox.position);
 
             let ray = new THREE.Raycaster(currentPosition, directionVector.clone().normalize());
-            let collisionResults = ray.intersectObjects([track.body]);
-
+            
+            let trackMeshes = [track.body];
+            for (let platform of track.movingPlatforms)
+                trackMeshes.push(platform.mesh);
+    
+            let collisionResults = ray.intersectObjects(trackMeshes);
             if (collisionResults.length > 0 && 
                 collisionResults[0].distance < directionVector.length()) {
                 let collision = collisionResults[0].point;

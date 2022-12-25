@@ -1,11 +1,23 @@
 interface IControls {
-    [key: string]: boolean; 
+    [key: string]: boolean;
 }
 
 interface ICurveData {
     points: Array<THREE.Vector3>,
     closed: boolean
-    extrudeShapeIndex: number
+    extrudeShapeIndex: number,
+    moving?: boolean,
+    direction?: THREE.Vector3,
+    period?: number,
+    phase?: number
+}
+
+interface IPlatform {
+    mesh: THREE.Mesh,
+    origin: THREE.Vector3,
+    direction: THREE.Vector3,
+    period: number,
+    phase: number
 }
 
 interface ITrackData {
@@ -40,6 +52,7 @@ interface IVehicleData {
 export {
     IControls,
     ICurveData,
+    IPlatform,
     ITrackData,
     IVehicleData
 }

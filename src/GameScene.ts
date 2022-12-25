@@ -6,7 +6,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 import { Track, Vehicle } from "./objects/objects";
 import { IControls } from "./utils/interfaces";
-import { track_0, track_8, track_y } from "../data/tracks/tracks";
+import { track_0, track_8, track_s, track_y } from "../data/tracks/tracks";
 import { bike, mustang } from "../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
@@ -84,8 +84,9 @@ export default class GameScene extends THREE.Scene {
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this, track_0, debug);
+        // this.track = new Track(this, track_0, debug);
         // this.track = new Track(this, track_8, debug);
+        this.track = new Track(this, track_s, debug);
         // this.track = new Track(this, track_y, debug);
 
         // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
@@ -125,5 +126,7 @@ export default class GameScene extends THREE.Scene {
         for (let vehicle of this.vehicles) {
             vehicle.update(this.keysPressed, this.track, dt);
         }
+
+        this.track.update(dt);
     }
 }
