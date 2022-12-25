@@ -5,6 +5,7 @@
   "private": "true",
   "scripts": {
     "build": "webpack --config webpack.config.js",
+    "predeploy": "predeploy",
     "deploy": "gh-pages -d dist"
   },
   "keywords": [],
