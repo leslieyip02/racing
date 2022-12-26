@@ -11,7 +11,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, -20),
                 new THREE.Vector3(0, 10, 20),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -19,7 +18,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 20),
                 new THREE.Vector3(0, 10, 40),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -31,7 +29,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 40),
                 new THREE.Vector3(0, 10, 60),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -43,7 +40,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 60),
                 new THREE.Vector3(0, 10, 80),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -55,7 +51,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 80),
                 new THREE.Vector3(0, 10, 100),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -67,7 +62,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 100),
                 new THREE.Vector3(0, 10, 120),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -79,7 +73,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 120),
                 new THREE.Vector3(0, 10, 140),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -91,7 +84,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 140),
                 new THREE.Vector3(0, 10, 160),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -103,7 +95,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 160),
                 new THREE.Vector3(0, 10, 180),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -115,7 +106,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 180),
                 new THREE.Vector3(0, 10, 200),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -127,7 +117,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 200),
                 new THREE.Vector3(0, 10, 220),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -139,7 +128,6 @@ let track_s: ITrackData = {
                 new THREE.Vector3(0, 10, 220),
                 new THREE.Vector3(0, 10, 240),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -151,31 +139,19 @@ let track_s: ITrackData = {
         new THREE.Shape([
             new THREE.Vector2(0, 5),
             new THREE.Vector2(0, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0),
-            new THREE.Vector2(-5, 0),
-        ]),
+        ])
     ],
     surfaceExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.4, 4),
             new THREE.Vector2(0.4, -4),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(4, 0.4),
-            new THREE.Vector2(-4, 0.4),
-        ]),
+        ])
     ],
     outlineExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.5, 5),
             new THREE.Vector2(0.5, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0.5),
-            new THREE.Vector2(-5, 0.5),
-        ]),
+        ])
     ],
     extrudeOptions: {
         steps: 640,

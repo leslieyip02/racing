@@ -17,7 +17,6 @@ let track_8: ITrackData = {
                 new THREE.Vector3(-100, 1, 100),
                 new THREE.Vector3(-75, 1, 75),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -26,7 +25,6 @@ let track_8: ITrackData = {
                 new THREE.Vector3(0, 11, 0),
                 new THREE.Vector3(75, 1, -75),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -40,7 +38,6 @@ let track_8: ITrackData = {
                 new THREE.Vector3(-100, 1, -100),
                 new THREE.Vector3(0, 1, 0),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         }
     ],
@@ -48,30 +45,18 @@ let track_8: ITrackData = {
         new THREE.Shape([
             new THREE.Vector2(0, 5),
             new THREE.Vector2(0, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0),
-            new THREE.Vector2(-5, 0),
         ])
     ],
     surfaceExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.4, 5),
             new THREE.Vector2(0.4, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, -0.4),
-            new THREE.Vector2(-5, -0.4),
         ])
     ],
     outlineExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.5, 5.6),
             new THREE.Vector2(0.5, -5.6),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5.6, -0.5),
-            new THREE.Vector2(-5.6, -0.5),
         ])
     ],
     extrudeOptions: {

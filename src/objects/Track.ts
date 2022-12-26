@@ -53,11 +53,11 @@ export default class Track {
         for (let curve of curves) {
             let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
 
-            let mesh = this.createCurve(curve.points, curve.closed,
+            let mesh = this.createCurve(curve.points, curve.closed || false,
                 extrudeShape, extrudeOptions, material, debug, scene);
             
             if (curve.moving) {
-                let platform = {
+                let platform: IPlatform = {
                     mesh: mesh,
                     origin: mesh.position.clone(),
                     direction: curve.direction,
@@ -92,7 +92,7 @@ export default class Track {
             trackData.gridColor, trackData.gridColor);
         scene.add(grid);    
 
-        // set up movingData platforms
+        // set up platforms
         this.movingPlatforms = [];
 
         // make collision layer invisible and above the road
@@ -102,21 +102,20 @@ export default class Track {
             transparentMaterial, debug, scene);
         scene.add(this.body);
         
+        // road layer
         let surfaceLayer = this.createTrack(trackData.curves, 
             trackData.surfaceExtrudeShapes, trackData.extrudeOptions, 
             trackData.surfaceMaterial, debug, scene);
         scene.add(surfaceLayer);
 
+        // outline of road layer
         let outlineLayer = this.createTrack(trackData.curves, 
             trackData.outlineExtrudeShapes, trackData.extrudeOptions, 
             trackData.outlineMaterial, debug, scene);
         scene.add(outlineLayer);
 
         for (let platform of this.movingPlatforms)
-        {
-            console.log(platform.mesh)
             scene.add(platform.mesh);
-        }
     }
 
     update(dt?: number) {
@@ -128,14 +127,13 @@ export default class Track {
         for (let platform of this.movingPlatforms) {
             let time = (this.elapsedTime + platform.phase) % platform.period;
             let phase = 2 * Math.PI * (time / platform.period);
+            
+            // model platform movement on a sinusoidal wave
             let offset = platform.direction.clone()
                 .multiplyScalar(Math.sin(phase));
 
             let position = platform.origin.clone()
                 .add(offset);
-
-            console.log(time, phase, Math.sin(phase), offset, position)
-            // debugger
 
             platform.mesh.position.set(position.x, position.y, position.z);
         }

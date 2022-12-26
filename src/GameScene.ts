@@ -85,8 +85,8 @@ export default class GameScene extends THREE.Scene {
         this.add(new THREE.AmbientLight(0xffffff));
 
         // this.track = new Track(this, track_0, debug);
-        // this.track = new Track(this, track_8, debug);
-        this.track = new Track(this, track_s, debug);
+        this.track = new Track(this, track_8, debug);
+        // this.track = new Track(this, track_s, debug);
         // this.track = new Track(this, track_y, debug);
 
         // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,

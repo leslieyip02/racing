@@ -11,7 +11,6 @@ let track_y: ITrackData = {
                 new THREE.Vector3(0, 10, -20),
                 new THREE.Vector3(0, 10, 20),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -21,7 +20,6 @@ let track_y: ITrackData = {
                 new THREE.Vector3(-20, 10, 40),
                 new THREE.Vector3(-20, 10, 50),
             ],
-            closed: false,
             extrudeShapeIndex: 1
         },
         {
@@ -31,7 +29,6 @@ let track_y: ITrackData = {
                 new THREE.Vector3(20, 10, 40),
                 new THREE.Vector3(20, 10, 50),
             ],
-            closed: false,
             extrudeShapeIndex: 1
         },
         {
@@ -42,7 +39,6 @@ let track_y: ITrackData = {
                 new THREE.Vector3(-20, 10, 100),
                 new THREE.Vector3(-20, 10, 110),
             ],
-            closed: false,
             extrudeShapeIndex: 2
         },
         {
@@ -53,7 +49,6 @@ let track_y: ITrackData = {
                 new THREE.Vector3(20, 10, 100),
                 new THREE.Vector3(20, 10, 110),
             ],
-            closed: false,
             extrudeShapeIndex: 2
         },
     ],
