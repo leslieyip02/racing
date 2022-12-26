@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ITrackData } from "../../src/utils/interfaces";
+import { ITrackData } from "../../../src/utils/interfaces";
 
 let track_0: ITrackData = {
     startPoint: new THREE.Vector3(120, 100, 0),
