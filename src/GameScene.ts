@@ -67,6 +67,8 @@ export default class GameScene extends THREE.Scene {
             let controlKeys = ["w", "a", "s", "d", "shift"];
     
             window.addEventListener("touchmove", (e: TouchEvent) => {
+                e.preventDefault();
+                
                 for (let key of controlKeys)
                     this.keysPressed[key] = false;
     
@@ -96,7 +98,7 @@ export default class GameScene extends THREE.Scene {
                 
                 document.getElementById("knob").style.top = top;
                 document.getElementById("knob").style.left = left;
-            });
+            }, false);
     
             // reset knob position
             window.addEventListener("touchend", () => {
@@ -105,7 +107,7 @@ export default class GameScene extends THREE.Scene {
     
                 document.getElementById("knob").style.top = "5vw";
                 document.getElementById("knob").style.left = "5vw";
-            });
+            }, false);
         }
 
         // set up window resizing
