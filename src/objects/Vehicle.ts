@@ -187,7 +187,12 @@ export default class Vehicle {
             this.rotation.z = Math.min(this.rotation.z - angle, this.maxRoll);
             
             this.model.setRotationFromEuler(this.rotation.clone());
-            this.hitbox.setRotationFromEuler(this.rotation.clone());
+
+            // collision hitbox does not need to roll
+            let hitboxRotation = this.rotation.clone();
+            hitboxRotation.z = 0;
+            this.hitbox.setRotationFromEuler(hitboxRotation);
+            
             this.direction.applyAxisAngle(this.hitbox.up, angle);
         }
         
@@ -198,7 +203,11 @@ export default class Vehicle {
             this.rotation.z = Math.max(this.rotation.z - angle, -this.maxRoll);
             
             this.model.setRotationFromEuler(this.rotation.clone());
-            this.hitbox.setRotationFromEuler(this.rotation.clone());
+            
+            let hitboxRotation = this.rotation.clone();
+            hitboxRotation.z = 0;
+            this.hitbox.setRotationFromEuler(hitboxRotation);
+
             this.direction.applyAxisAngle(this.hitbox.up, angle);
         }
         
