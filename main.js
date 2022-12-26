@@ -99,6 +99,7 @@ class GameScene extends THREE.Scene {
             // keep track of all keys so they can be reset in the touch handler
             let controlKeys = ["w", "a", "s", "d", "shift"];
             window.addEventListener("touchmove", (e) => {
+                e.preventDefault();
                 for (let key of controlKeys)
                     this.keysPressed[key] = false;
                 let dx = e.touches[0].clientX - x0;
@@ -120,14 +121,14 @@ class GameScene extends THREE.Scene {
                 let left = 5 + r * Math.cos(a) / vw + "vw";
                 document.getElementById("knob").style.top = top;
                 document.getElementById("knob").style.left = left;
-            });
+            }, false);
             // reset knob position
             window.addEventListener("touchend", () => {
                 for (let key of controlKeys)
                     this.keysPressed[key] = false;
                 document.getElementById("knob").style.top = "5vw";
                 document.getElementById("knob").style.left = "5vw";
-            });
+            }, false);
         }
         // set up window resizing
         window.addEventListener("resize", () => {
