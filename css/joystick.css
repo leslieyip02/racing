@@ -1,0 +1,30 @@
+:root {
+    --joystick-radius: 10vw;
+    --knob-radius: 5vw;
+}
+
+#joystick {
+    position: absolute;
+    top: 50vh;
+    left: 10vw;
+    height: calc(var(--joystick-radius) * 2);
+    width: calc(var(--joystick-radius) * 2);
+    
+    opacity: 50%;
+    background-color: #333333;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+}
+
+#knob {
+    position: inherit;
+    top: var(--knob-radius);
+    left: var(--knob-radius);
+    height: calc(var(--knob-radius) * 2);
+    width: calc(var(--knob-radius) * 2);
+
+    opacity: 80%;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 50%;
+}

@@ -47,6 +47,67 @@ export default class GameScene extends THREE.Scene {
             this.keysPressed[e.key.toLowerCase()] = false;
         });
 
+        // set up touch joystick
+        // hide joystick if not touch device
+        if (!("ontouchstart" in window ||
+            navigator.maxTouchPoints > 0)) {
+            
+            document.getElementById("joystick").style.display = "none";
+        } else {
+            let vw = 0.01 * this.width;
+            let vh = 0.01 * this.height;        
+            let joystickRadius = 10 * vw;
+            let joystickThreshold = 0.5 * joystickRadius;
+            
+            // get origin for joystick in px
+            let x0 = 10 * vw + joystickRadius;
+            let y0 = 50 * vh + joystickRadius;
+            
+            // keep track of all keys so they can be reset in the touch handler
+            let controlKeys = ["w", "a", "s", "d", "shift"];
+    
+            window.addEventListener("touchmove", (e: TouchEvent) => {
+                for (let key of controlKeys)
+                    this.keysPressed[key] = false;
+    
+                let dx = e.touches[0].clientX - x0;
+                let dy = e.touches[0].clientY - y0;
+    
+                // mimic wasd controls with the joystick
+                if (dy < -joystickThreshold)
+                    this.keysPressed["w"] = true;
+                
+                if (dx < -joystickThreshold)
+                    this.keysPressed["a"] = true;
+    
+                if (dy > joystickThreshold)
+                    this.keysPressed["s"] = true;
+                
+                if (dx > joystickThreshold)
+                    this.keysPressed["d"] = true;
+    
+                // clamp the displacement of the knob from the origin
+                let r = Math.min(Math.sqrt(dx ** 2 + dy ** 2), joystickRadius);
+                let a = Math.atan2(dy, dx);
+                
+                // add back 5vw offset to center 
+                let top = 5 + r * Math.sin(a) / vw + "vw";
+                let left = 5 + r * Math.cos(a) / vw + "vw";
+                
+                document.getElementById("knob").style.top = top;
+                document.getElementById("knob").style.left = left;
+            });
+    
+            // reset knob position
+            window.addEventListener("touchend", () => {
+                for (let key of controlKeys)
+                    this.keysPressed[key] = false;
+    
+                document.getElementById("knob").style.top = "5vw";
+                document.getElementById("knob").style.left = "5vw";
+            });
+        }
+
         // set up window resizing
         window.addEventListener("resize", () => {
             this.width = window.innerWidth;
@@ -95,7 +156,6 @@ export default class GameScene extends THREE.Scene {
         this.vehicles.push(vehicle);
 
         if (debug) {
-
             // set up debugger
             this.debugger =  new GUI();
     
