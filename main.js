@@ -82,6 +82,53 @@ class GameScene extends THREE.Scene {
         window.addEventListener("keyup", (e) => {
             this.keysPressed[e.key.toLowerCase()] = false;
         });
+        // set up touch joystick
+        // hide joystick if not touch device
+        if (!("ontouchstart" in window ||
+            navigator.maxTouchPoints > 0)) {
+            document.getElementById("joystick").style.display = "none";
+        }
+        else {
+            let vw = 0.01 * this.width;
+            let vh = 0.01 * this.height;
+            let joystickRadius = 10 * vw;
+            let joystickThreshold = 0.5 * joystickRadius;
+            // get origin for joystick in px
+            let x0 = 10 * vw + joystickRadius;
+            let y0 = 50 * vh + joystickRadius;
+            // keep track of all keys so they can be reset in the touch handler
+            let controlKeys = ["w", "a", "s", "d", "shift"];
+            window.addEventListener("touchmove", (e) => {
+                for (let key of controlKeys)
+                    this.keysPressed[key] = false;
+                let dx = e.touches[0].clientX - x0;
+                let dy = e.touches[0].clientY - y0;
+                // mimic wasd controls with the joystick
+                if (dy < -joystickThreshold)
+                    this.keysPressed["w"] = true;
+                if (dx < -joystickThreshold)
+                    this.keysPressed["a"] = true;
+                if (dy > joystickThreshold)
+                    this.keysPressed["s"] = true;
+                if (dx > joystickThreshold)
+                    this.keysPressed["d"] = true;
+                // clamp the displacement of the knob from the origin
+                let r = Math.min(Math.sqrt(dx ** 2 + dy ** 2), joystickRadius);
+                let a = Math.atan2(dy, dx);
+                // add back 5vw offset to center 
+                let top = 5 + r * Math.sin(a) / vw + "vw";
+                let left = 5 + r * Math.cos(a) / vw + "vw";
+                document.getElementById("knob").style.top = top;
+                document.getElementById("knob").style.left = left;
+            });
+            // reset knob position
+            window.addEventListener("touchend", () => {
+                for (let key of controlKeys)
+                    this.keysPressed[key] = false;
+                document.getElementById("knob").style.top = "5vw";
+                document.getElementById("knob").style.left = "5vw";
+            });
+        }
         // set up window resizing
         window.addEventListener("resize", () => {
             this.width = window.innerWidth;
@@ -110,10 +157,7 @@ class GameScene extends THREE.Scene {
         this.composer.addPass(this.filter);
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
-        // this.track = new Track(this, track_0, debug);
-        // this.track = new Track(this, track_8, debug);
-        this.track = new objects_1.Track(this, tracks_1.track_s, debug);
-        // this.track = new Track(this, track_y, debug);
+        this.track = new objects_1.Track(this, tracks_1.testTracks[0], debug);
         // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
         //     this.track.startDirection, this.track.startRotation, debug);
         let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.mustang, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
@@ -55873,7 +55917,7 @@ class Track {
         let meshes = [];
         for (let curve of curves) {
             let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
-            let mesh = this.createCurve(curve.points, curve.closed, extrudeShape, extrudeOptions, material, debug, scene);
+            let mesh = this.createCurve(curve.points, curve.closed || false, extrudeShape, extrudeOptions, material, debug, scene);
             if (curve.moving) {
                 let platform = {
                     mesh: mesh,
@@ -55903,20 +55947,20 @@ class Track {
         // set up grid
         let grid = new THREE.GridHelper(1000, 1000, trackData.gridColor, trackData.gridColor);
         scene.add(grid);
-        // set up movingData platforms
+        // set up platforms
         this.movingPlatforms = [];
         // make collision layer invisible and above the road
         let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
         this.body = this.createTrack(trackData.curves, trackData.extrudeShapes, trackData.extrudeOptions, transparentMaterial, debug, scene);
         scene.add(this.body);
+        // road layer
         let surfaceLayer = this.createTrack(trackData.curves, trackData.surfaceExtrudeShapes, trackData.extrudeOptions, trackData.surfaceMaterial, debug, scene);
         scene.add(surfaceLayer);
+        // outline of road layer
         let outlineLayer = this.createTrack(trackData.curves, trackData.outlineExtrudeShapes, trackData.extrudeOptions, trackData.outlineMaterial, debug, scene);
         scene.add(outlineLayer);
-        for (let platform of this.movingPlatforms) {
-            console.log(platform.mesh);
+        for (let platform of this.movingPlatforms)
             scene.add(platform.mesh);
-        }
     }
     update(dt) {
         if (!dt)
@@ -55925,12 +55969,11 @@ class Track {
         for (let platform of this.movingPlatforms) {
             let time = (this.elapsedTime + platform.phase) % platform.period;
             let phase = 2 * Math.PI * (time / platform.period);
+            // model platform movement on a sinusoidal wave
             let offset = platform.direction.clone()
                 .multiplyScalar(Math.sin(phase));
             let position = platform.origin.clone()
                 .add(offset);
-            console.log(time, phase, Math.sin(phase), offset, position);
-            // debugger
             platform.mesh.position.set(position.x, position.y, position.z);
         }
     }
@@ -56172,7 +56215,10 @@ class Vehicle {
             // roll
             this.rotation.z = Math.min(this.rotation.z - angle, this.maxRoll);
             this.model.setRotationFromEuler(this.rotation.clone());
-            this.hitbox.setRotationFromEuler(this.rotation.clone());
+            // collision hitbox does not need to roll
+            let hitboxRotation = this.rotation.clone();
+            hitboxRotation.z = 0;
+            this.hitbox.setRotationFromEuler(hitboxRotation);
             this.direction.applyAxisAngle(this.hitbox.up, angle);
         }
         if (keysPressed["a"]) {
@@ -56180,7 +56226,9 @@ class Vehicle {
             this.rotation.y += angle;
             this.rotation.z = Math.max(this.rotation.z - angle, -this.maxRoll);
             this.model.setRotationFromEuler(this.rotation.clone());
-            this.hitbox.setRotationFromEuler(this.rotation.clone());
+            let hitboxRotation = this.rotation.clone();
+            hitboxRotation.z = 0;
+            this.hitbox.setRotationFromEuler(hitboxRotation);
             this.direction.applyAxisAngle(this.hitbox.up, angle);
         }
         // reset roll
@@ -60590,15 +60638,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.track_y = exports.track_s = exports.track_8 = exports.track_0 = void 0;
-var track_0_1 = __webpack_require__(19);
-Object.defineProperty(exports, "track_0", ({ enumerable: true, get: function () { return __importDefault(track_0_1).default; } }));
-var track_8_1 = __webpack_require__(20);
-Object.defineProperty(exports, "track_8", ({ enumerable: true, get: function () { return __importDefault(track_8_1).default; } }));
-var track_s_1 = __webpack_require__(21);
-Object.defineProperty(exports, "track_s", ({ enumerable: true, get: function () { return __importDefault(track_s_1).default; } }));
-var track_y_1 = __webpack_require__(22);
-Object.defineProperty(exports, "track_y", ({ enumerable: true, get: function () { return __importDefault(track_y_1).default; } }));
+exports.testTracks = void 0;
+const track_0_1 = __importDefault(__webpack_require__(19));
+const track_8_1 = __importDefault(__webpack_require__(20));
+const track_s_1 = __importDefault(__webpack_require__(21));
+const track_y_1 = __importDefault(__webpack_require__(22));
+let testTracks = [track_0_1.default, track_8_1.default, track_s_1.default, track_y_1.default];
+exports.testTracks = testTracks;
 
 
 /***/ }),
@@ -60646,26 +60692,10 @@ let track_0 = {
                 new THREE.Vector3(80, 60, -200),
             ],
             closed: true,
-            extrudeShapeIndex: 1
+            extrudeShapeIndex: 0
         },
-        // {
-        //     points: [
-        //         new THREE.Vector3(120, 70, 0),
-        //         new THREE.Vector3(80, 70, 200),
-        //         new THREE.Vector3(-80, 90, 200),
-        //         new THREE.Vector3(-120, 10, 0),
-        //         new THREE.Vector3(-80, 30, -200),
-        //         new THREE.Vector3(80, 30, -200),
-        //     ],
-        //     closed: true,
-        //     extrudeShapeIndex: 1
-        // },
     ],
     extrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0, 7),
-            new THREE.Vector2(0, -7),
-        ]),
         new THREE.Shape([
             new THREE.Vector2(7, 0),
             new THREE.Vector2(-7, 0),
@@ -60673,19 +60703,11 @@ let track_0 = {
     ],
     surfaceExtrudeShapes: [
         new THREE.Shape([
-            new THREE.Vector2(0.4, 6),
-            new THREE.Vector2(0.4, -6),
-        ]),
-        new THREE.Shape([
             new THREE.Vector2(6, 0.4),
             new THREE.Vector2(-6, 0.4),
         ])
     ],
     outlineExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.5, 7),
-            new THREE.Vector2(0.5, -7),
-        ]),
         new THREE.Shape([
             new THREE.Vector2(7, 0.5),
             new THREE.Vector2(-7, 0.5),
@@ -60755,7 +60777,6 @@ let track_8 = {
                 new THREE.Vector3(-100, 1, 100),
                 new THREE.Vector3(-75, 1, 75),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -60764,7 +60785,6 @@ let track_8 = {
                 new THREE.Vector3(0, 11, 0),
                 new THREE.Vector3(75, 1, -75),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -60778,7 +60798,6 @@ let track_8 = {
                 new THREE.Vector3(-100, 1, -100),
                 new THREE.Vector3(0, 1, 0),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         }
     ],
@@ -60786,30 +60805,18 @@ let track_8 = {
         new THREE.Shape([
             new THREE.Vector2(0, 5),
             new THREE.Vector2(0, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0),
-            new THREE.Vector2(-5, 0),
         ])
     ],
     surfaceExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.4, 5),
             new THREE.Vector2(0.4, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, -0.4),
-            new THREE.Vector2(-5, -0.4),
         ])
     ],
     outlineExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.5, 5.6),
             new THREE.Vector2(0.5, -5.6),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5.6, -0.5),
-            new THREE.Vector2(-5.6, -0.5),
         ])
     ],
     extrudeOptions: {
@@ -60870,7 +60877,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, -20),
                 new THREE.Vector3(0, 10, 20),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -60878,7 +60884,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 20),
                 new THREE.Vector3(0, 10, 40),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60890,7 +60895,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 40),
                 new THREE.Vector3(0, 10, 60),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60902,7 +60906,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 60),
                 new THREE.Vector3(0, 10, 80),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60914,7 +60917,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 80),
                 new THREE.Vector3(0, 10, 100),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60926,7 +60928,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 100),
                 new THREE.Vector3(0, 10, 120),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60938,7 +60939,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 120),
                 new THREE.Vector3(0, 10, 140),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60950,7 +60950,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 140),
                 new THREE.Vector3(0, 10, 160),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60962,7 +60961,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 160),
                 new THREE.Vector3(0, 10, 180),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60974,7 +60972,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 180),
                 new THREE.Vector3(0, 10, 200),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60986,7 +60983,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 200),
                 new THREE.Vector3(0, 10, 220),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -60998,7 +60994,6 @@ let track_s = {
                 new THREE.Vector3(0, 10, 220),
                 new THREE.Vector3(0, 10, 240),
             ],
-            closed: false,
             extrudeShapeIndex: 0,
             moving: true,
             direction: new THREE.Vector3(10, 0, 0),
@@ -61010,31 +61005,19 @@ let track_s = {
         new THREE.Shape([
             new THREE.Vector2(0, 5),
             new THREE.Vector2(0, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0),
-            new THREE.Vector2(-5, 0),
-        ]),
+        ])
     ],
     surfaceExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.4, 4),
             new THREE.Vector2(0.4, -4),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(4, 0.4),
-            new THREE.Vector2(-4, 0.4),
-        ]),
+        ])
     ],
     outlineExtrudeShapes: [
         new THREE.Shape([
             new THREE.Vector2(0.5, 5),
             new THREE.Vector2(0.5, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0.5),
-            new THREE.Vector2(-5, 0.5),
-        ]),
+        ])
     ],
     extrudeOptions: {
         steps: 640,
@@ -61094,7 +61077,6 @@ let track_y = {
                 new THREE.Vector3(0, 10, -20),
                 new THREE.Vector3(0, 10, 20),
             ],
-            closed: false,
             extrudeShapeIndex: 0
         },
         {
@@ -61104,7 +61086,6 @@ let track_y = {
                 new THREE.Vector3(-20, 10, 40),
                 new THREE.Vector3(-20, 10, 50),
             ],
-            closed: false,
             extrudeShapeIndex: 1
         },
         {
@@ -61114,7 +61095,6 @@ let track_y = {
                 new THREE.Vector3(20, 10, 40),
                 new THREE.Vector3(20, 10, 50),
             ],
-            closed: false,
             extrudeShapeIndex: 1
         },
         {
@@ -61125,7 +61105,6 @@ let track_y = {
                 new THREE.Vector3(-20, 10, 100),
                 new THREE.Vector3(-20, 10, 110),
             ],
-            closed: false,
             extrudeShapeIndex: 2
         },
         {
@@ -61136,7 +61115,6 @@ let track_y = {
                 new THREE.Vector3(20, 10, 100),
                 new THREE.Vector3(20, 10, 110),
             ],
-            closed: false,
             extrudeShapeIndex: 2
         },
     ],
