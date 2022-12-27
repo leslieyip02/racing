@@ -66,7 +66,7 @@ export default class GameScene extends THREE.Scene {
             // keep track of all keys so they can be reset in the touch handler
             let controlKeys = ["w", "a", "s", "d", "shift"];
     
-            window.addEventListener("touchmove", (e: TouchEvent) => {
+            document.getElementById("knob").addEventListener("touchmove", (e: TouchEvent) => {
                 e.preventDefault();
                 
                 for (let key of controlKeys)
@@ -101,7 +101,7 @@ export default class GameScene extends THREE.Scene {
             }, false);
     
             // reset knob position
-            window.addEventListener("touchend", () => {
+            document.getElementById("knob").addEventListener("touchend", () => {
                 for (let key of controlKeys)
                     this.keysPressed[key] = false;
     
