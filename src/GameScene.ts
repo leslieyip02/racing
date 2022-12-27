@@ -149,10 +149,10 @@ export default class GameScene extends THREE.Scene {
 
         this.track = new Track(this, testTracks[0], debug);
 
-        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
-        let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
+        let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, debug);
+        // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
+        //     this.track.startDirection, this.track.startRotation, debug);
         
         this.vehicles = [];
         this.vehicles.push(vehicle);

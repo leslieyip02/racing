@@ -19,36 +19,48 @@ let track_0: ITrackData = {
             extrudeShapeIndex: 0
         },
     ],
-    extrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(7, 0),
-            new THREE.Vector2(-7, 0),
-        ])
-    ],
-    surfaceExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(6, 0.4),
-            new THREE.Vector2(-6, 0.4),
-        ])
-    ],
-    outlineExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(7, 0.5),
-            new THREE.Vector2(-7, 0.5),
-        ])
+    layers: [
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(7, 0),
+                    new THREE.Vector2(-7, 0),
+                ])
+            ],
+            material: new THREE.MeshBasicMaterial({ 
+                transparent: true, 
+                opacity: 0 
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(6, 0.4),
+                    new THREE.Vector2(-6, 0.4),
+                ])
+            ],
+            material: new THREE.MeshLambertMaterial({ 
+                color: 0x000e54,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(7, 0.5),
+                    new THREE.Vector2(-7, 0.5),
+                ])
+            ],
+            material: new THREE.MeshStandardMaterial({ 
+                color: 0x99ccff, 
+                wireframe: false 
+            })
+        }
     ],
     extrudeOptions: {
         steps: 640,
         bevelEnabled: true,
     },
-    surfaceMaterial: new THREE.MeshLambertMaterial({ 
-        color: 0x000e54,
-        wireframe: false
-    }),
-    outlineMaterial: new THREE.MeshStandardMaterial({ 
-        color: 0x99ccff, 
-        wireframe: false 
-    }),
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 }

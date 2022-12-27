@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ICurveData, ITrackData, IPlatform } from "../utils/interfaces";
+import { ICurveData, ITrackData, IPlatformData } from "../utils/interfaces";
 import { debugAxes, debugPoints, debugLine } from "../utils/debug";
 
 export default class Track {    
@@ -8,7 +8,7 @@ export default class Track {
     startRotation: THREE.Euler;
 
     body: THREE.Mesh;
-    movingPlatforms: Array<IPlatform>;
+    movingPlatforms: Array<IPlatformData>;
     elapsedTime: number;
 
     constructor(scene: THREE.Scene, trackData: ITrackData,
@@ -57,7 +57,7 @@ export default class Track {
                 extrudeShape, extrudeOptions, material, debug, scene);
             
             if (curve.moving) {
-                let platform: IPlatform = {
+                let platform: IPlatformData = {
                     mesh: mesh,
                     origin: mesh.position.clone(),
                     direction: curve.direction,
@@ -88,31 +88,30 @@ export default class Track {
             .background = background;
         
         // set up grid
-        let grid = new THREE.GridHelper(1000, 1000, 
-            trackData.gridColor, trackData.gridColor);
-        scene.add(grid);    
+        if (trackData.gridColor) {
+            let grid = new THREE.GridHelper(1000, 1000, 
+                trackData.gridColor, trackData.gridColor);
+            scene.add(grid);    
+        }
 
         // set up platforms
         this.movingPlatforms = [];
-
+        
         // make collision layer invisible and above the road
-        let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
+        let collisionLayer = trackData.layers.shift();
         this.body = this.createTrack(trackData.curves, 
-            trackData.extrudeShapes, trackData.extrudeOptions, 
-            transparentMaterial, debug, scene);
+            collisionLayer.shapes, trackData.extrudeOptions, 
+            collisionLayer.material, debug, scene);
         scene.add(this.body);
         
-        // road layer
-        let surfaceLayer = this.createTrack(trackData.curves, 
-            trackData.surfaceExtrudeShapes, trackData.extrudeOptions, 
-            trackData.surfaceMaterial, debug, scene);
-        scene.add(surfaceLayer);
-
-        // outline of road layer
-        let outlineLayer = this.createTrack(trackData.curves, 
-            trackData.outlineExtrudeShapes, trackData.extrudeOptions, 
-            trackData.outlineMaterial, debug, scene);
-        scene.add(outlineLayer);
+        // add all layers
+        // e.g. surface layer and outline layer
+        for (let layerData of trackData.layers) {
+            let layer = this.createTrack(trackData.curves,
+                layerData.shapes, trackData.extrudeOptions,
+                layerData.material, debug, scene);
+            scene.add(layer);
+        }
 
         for (let platform of this.movingPlatforms)
             scene.add(platform.mesh);

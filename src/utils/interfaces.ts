@@ -1,7 +1,11 @@
+// store what keys are pressed
 interface IControls {
     [key: string]: boolean;
 }
 
+// store an array of points which then create a curve
+// the extrude shapes may need to change depending on 
+// the orientation of the curve
 interface ICurveData {
     points: Array<THREE.Vector3>;
     extrudeShapeIndex: number
@@ -12,7 +16,8 @@ interface ICurveData {
     phase?: number;
 }
 
-interface IPlatform {
+// data for platform movement
+interface IPlatformData {
     mesh: THREE.Mesh;
     origin: THREE.Vector3;
     direction: THREE.Vector3;
@@ -20,19 +25,21 @@ interface IPlatform {
     phase: number;
 }
 
+// the track is rendered in multiple layers
+interface ILayerData {
+    shapes: Array<THREE.Shape>;
+    material: THREE.Material;
+}
+
 interface ITrackData {
     startPoint: THREE.Vector3;
     startDirection: THREE.Vector3;
     startRotation: THREE.Euler;
     curves: Array<ICurveData>;
-    extrudeShapes: Array<THREE.Shape>;
-    surfaceExtrudeShapes: Array<THREE.Shape>;
-    outlineExtrudeShapes: Array<THREE.Shape>;
+    layers: Array<ILayerData>;
     extrudeOptions: THREE.ExtrudeGeometryOptions;
-    surfaceMaterial: THREE.Material;
-    outlineMaterial: THREE.Material;
     backgroundColors: Array<string>;
-    gridColor: number | THREE.Color;
+    gridColor?: number | THREE.Color;
 }
 
 interface IVehicleData {
@@ -52,7 +59,7 @@ interface IVehicleData {
 export {
     IControls,
     ICurveData,
-    IPlatform,
+    IPlatformData,
     ITrackData,
     IVehicleData
 }
