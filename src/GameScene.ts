@@ -4,9 +4,11 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
-import { Track, Vehicle } from "./objects/objects";
+import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry"
+import { Satellite, Track, Vehicle } from "./objects/objects";
+import { randomVector } from "./utils/functions";
 import { IControls } from "./utils/interfaces";
-import { testTracks } from "../data/tracks/tracks";
+import { tracks, testTracks } from "../data/tracks/tracks";
 import { bike, mustang } from "../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
@@ -26,6 +28,7 @@ export default class GameScene extends THREE.Scene {
 
     track: Track;
     vehicles: Array<Vehicle>;
+    satellites: Array<Satellite>;
 
     constructor(debug?: boolean) {
         super();
@@ -37,78 +40,9 @@ export default class GameScene extends THREE.Scene {
 
         // set up utilities
         // set up controls
-        this.keysPressed = {};
-
-        window.addEventListener("keydown", (e: KeyboardEvent) => {
-            this.keysPressed[e.key.toLowerCase()] = true;
-        });
-
-        window.addEventListener("keyup", (e: KeyboardEvent) => {
-            this.keysPressed[e.key.toLowerCase()] = false;
-        });
-
-        // set up touch joystick
-        // hide joystick if not touch device
-        if (!("ontouchstart" in window ||
-            navigator.maxTouchPoints > 0)) {
-            
-            document.getElementById("joystick").style.display = "none";
-        } else {
-            let vw = 0.01 * this.width;
-            let vh = 0.01 * this.height;        
-            let joystickRadius = 10 * vw;
-            let joystickThreshold = 0.5 * joystickRadius;
-            
-            // get origin for joystick in px
-            let x0 = 10 * vw + joystickRadius;
-            let y0 = 50 * vh + joystickRadius;
-            
-            // keep track of all keys so they can be reset in the touch handler
-            let controlKeys = ["w", "a", "s", "d", "shift"];
-    
-            document.getElementById("knob").addEventListener("touchmove", (e: TouchEvent) => {
-                e.preventDefault();
-                
-                for (let key of controlKeys)
-                    this.keysPressed[key] = false;
-    
-                let dx = e.touches[0].clientX - x0;
-                let dy = e.touches[0].clientY - y0;
-    
-                // mimic wasd controls with the joystick
-                if (dy < -joystickThreshold)
-                    this.keysPressed["w"] = true;
-                
-                if (dx < -joystickThreshold)
-                    this.keysPressed["a"] = true;
-    
-                if (dy > joystickThreshold)
-                    this.keysPressed["s"] = true;
-                
-                if (dx > joystickThreshold)
-                    this.keysPressed["d"] = true;
-    
-                // clamp the displacement of the knob from the origin
-                let r = Math.min(Math.sqrt(dx ** 2 + dy ** 2), joystickRadius);
-                let a = Math.atan2(dy, dx);
-                
-                // add back 5vw offset to center 
-                let top = 5 + r * Math.sin(a) / vw + "vw";
-                let left = 5 + r * Math.cos(a) / vw + "vw";
-                
-                document.getElementById("knob").style.top = top;
-                document.getElementById("knob").style.left = left;
-            }, false);
-    
-            // reset knob position
-            document.getElementById("knob").addEventListener("touchend", () => {
-                for (let key of controlKeys)
-                    this.keysPressed[key] = false;
-    
-                document.getElementById("knob").style.top = "5vw";
-                document.getElementById("knob").style.left = "5vw";
-            }, false);
-        }
+        let isTouchDevice = "ontouchstart" in window || 
+            navigator.maxTouchPoints > 0;
+        this.setupControls(isTouchDevice);
 
         // set up window resizing
         window.addEventListener("resize", () => {
@@ -122,10 +56,54 @@ export default class GameScene extends THREE.Scene {
         }, false);
     }
 
+    setupBackgroundEntities(number: number = 5000, 
+        distance: number = 1000, offset: number = 200) {
+        
+        this.satellites = [];
+
+        let material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+        let geometry = new THREE.SphereGeometry(1, 4, 2);
+        let mesh = new THREE.Mesh(geometry, material);
+
+        for (let i = 0; i < number; i++) {
+            let position = randomVector();
+            
+            // distribute stars in a spherical manner
+            // prevent stars from concentrating around the corners of a cube
+            while (position.length() < 0.5 && position.length() > 1)
+                position = randomVector();
+
+            position.normalize();
+            position.multiplyScalar(distance + Math.random() * offset);
+
+            // small chance to create a bigger geometry
+            if (Math.random() < 0.05) {
+                // create a convex hull from a random set of points
+                let points = Array(Math.ceil(Math.random() * 8) + 8).fill(0)
+                    .map(_ => randomVector().multiplyScalar(Math.random() * 20));
+            
+                let geometry = new ConvexGeometry(points);
+                let direction = randomVector().multiplyScalar(0.1);
+                let rotationRate = randomVector().multiplyScalar(0.001);
+                let satellite = new Satellite(geometry, material, direction, rotationRate);
+                satellite.position.set(position.x, position.y, position.z);
+
+                // store satellites separetely so they can be updated
+                this.satellites.push(satellite);
+                this.add(satellite);
+            } else {
+                // standard star is a diamond shape
+                let star = mesh.clone();
+                star.position.set(position.x, position.y, position.z);
+                this.add(star);
+            }
+        }
+    }
+
     render(debug?: boolean) {
         // set up camera
         this.camera = new THREE.PerspectiveCamera(64, 
-            this.width / this.height, 0.1, 1000);
+            this.width / this.height, 0.1, 3200);
 
         // set up renderer
         this.renderer = new THREE.WebGLRenderer({
@@ -147,7 +125,9 @@ export default class GameScene extends THREE.Scene {
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this, testTracks[0], debug);
+        this.track = new Track(this, tracks[0], debug);
+
+        this.setupBackgroundEntities();
 
         let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, debug);
@@ -181,10 +161,87 @@ export default class GameScene extends THREE.Scene {
         }
     }
 
-    update(dt?: number) {
-        for (let vehicle of this.vehicles) {
-            vehicle.update(this.keysPressed, this.track, dt);
+    setupControls(isTouchDevice?: boolean) {
+        // set up keyboard controls
+        this.keysPressed = {};
+
+        window.addEventListener("keydown", (e: KeyboardEvent) => {
+            this.keysPressed[e.key.toLowerCase()] = true;
+        });
+
+        window.addEventListener("keyup", (e: KeyboardEvent) => {
+            this.keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        // hide joystick if not touch device
+        if (!isTouchDevice) {
+            document.getElementById("joystick").style.display = "none";
+            return;
         }
+
+        // set up touch joystick
+        let vw = 0.01 * this.width;
+        let vh = 0.01 * this.height;        
+        let joystickRadius = 10 * vw;
+        let joystickThreshold = 0.5 * joystickRadius;
+        
+        // get origin for joystick in px
+        let x0 = 10 * vw + joystickRadius;
+        let y0 = 50 * vh + joystickRadius;
+        
+        // keep track of all keys so they can be reset in the touch handler
+        let controlKeys = ["w", "a", "s", "d", "shift"];
+
+        document.getElementById("knob").addEventListener("touchmove", (e: TouchEvent) => {
+            e.preventDefault();
+            
+            for (let key of controlKeys)
+                this.keysPressed[key] = false;
+
+            let dx = e.touches[0].clientX - x0;
+            let dy = e.touches[0].clientY - y0;
+
+            // mimic wasd controls with the joystick
+            if (dy < -joystickThreshold)
+                this.keysPressed["w"] = true;
+            
+            if (dx < -joystickThreshold)
+                this.keysPressed["a"] = true;
+
+            if (dy > joystickThreshold)
+                this.keysPressed["s"] = true;
+            
+            if (dx > joystickThreshold)
+                this.keysPressed["d"] = true;
+
+            // clamp the displacement of the knob from the origin
+            let r = Math.min(Math.sqrt(dx ** 2 + dy ** 2), joystickRadius);
+            let a = Math.atan2(dy, dx);
+            
+            // add back 5vw offset to center 
+            let top = 5 + r * Math.sin(a) / vw + "vw";
+            let left = 5 + r * Math.cos(a) / vw + "vw";
+            
+            document.getElementById("knob").style.top = top;
+            document.getElementById("knob").style.left = left;
+        }, false);
+
+        // reset knob position
+        document.getElementById("knob").addEventListener("touchend", () => {
+            for (let key of controlKeys)
+                this.keysPressed[key] = false;
+
+            document.getElementById("knob").style.top = "5vw";
+            document.getElementById("knob").style.left = "5vw";
+        }, false);
+    }
+
+    update(dt?: number) {
+        for (let vehicle of this.vehicles)
+            vehicle.update(this.keysPressed, this.track, dt);
+
+        for (let satellite of this.satellites)
+            satellite.update(dt);
 
         this.track.update(dt);
     }
