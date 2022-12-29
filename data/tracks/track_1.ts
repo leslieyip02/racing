@@ -173,7 +173,8 @@ let track_1: ITrackData = {
             ],
             material: new THREE.MeshBasicMaterial({ 
                 transparent: true, 
-                opacity: 0 
+                opacity: 0,
+                depthWrite: false
             })
         },
         {
@@ -247,7 +248,7 @@ let track_1: ITrackData = {
                 color: 0xaaaaaa, 
                 wireframe: false,
                 transparent: true,
-                opacity: 0.9
+                opacity: 0.3,
             })
         }
     ],
