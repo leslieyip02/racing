@@ -64,9 +64,11 @@ const OrbitControls_1 = __webpack_require__(4);
 const RenderPass_1 = __webpack_require__(5);
 const EffectComposer_1 = __webpack_require__(7);
 const UnrealBloomPass_1 = __webpack_require__(11);
-const objects_1 = __webpack_require__(13);
-const tracks_1 = __webpack_require__(18);
-const vehicles_1 = __webpack_require__(23);
+const ConvexGeometry_1 = __webpack_require__(13);
+const objects_1 = __webpack_require__(15);
+const functions_1 = __webpack_require__(21);
+const tracks_1 = __webpack_require__(22);
+const vehicles_1 = __webpack_require__(28);
 class GameScene extends THREE.Scene {
     constructor(debug) {
         super();
@@ -75,61 +77,9 @@ class GameScene extends THREE.Scene {
         this.render(debug);
         // set up utilities
         // set up controls
-        this.keysPressed = {};
-        window.addEventListener("keydown", (e) => {
-            this.keysPressed[e.key.toLowerCase()] = true;
-        });
-        window.addEventListener("keyup", (e) => {
-            this.keysPressed[e.key.toLowerCase()] = false;
-        });
-        // set up touch joystick
-        // hide joystick if not touch device
-        if (!("ontouchstart" in window ||
-            navigator.maxTouchPoints > 0)) {
-            document.getElementById("joystick").style.display = "none";
-        }
-        else {
-            let vw = 0.01 * this.width;
-            let vh = 0.01 * this.height;
-            let joystickRadius = 10 * vw;
-            let joystickThreshold = 0.5 * joystickRadius;
-            // get origin for joystick in px
-            let x0 = 10 * vw + joystickRadius;
-            let y0 = 50 * vh + joystickRadius;
-            // keep track of all keys so they can be reset in the touch handler
-            let controlKeys = ["w", "a", "s", "d", "shift"];
-            window.addEventListener("touchmove", (e) => {
-                e.preventDefault();
-                for (let key of controlKeys)
-                    this.keysPressed[key] = false;
-                let dx = e.touches[0].clientX - x0;
-                let dy = e.touches[0].clientY - y0;
-                // mimic wasd controls with the joystick
-                if (dy < -joystickThreshold)
-                    this.keysPressed["w"] = true;
-                if (dx < -joystickThreshold)
-                    this.keysPressed["a"] = true;
-                if (dy > joystickThreshold)
-                    this.keysPressed["s"] = true;
-                if (dx > joystickThreshold)
-                    this.keysPressed["d"] = true;
-                // clamp the displacement of the knob from the origin
-                let r = Math.min(Math.sqrt(dx ** 2 + dy ** 2), joystickRadius);
-                let a = Math.atan2(dy, dx);
-                // add back 5vw offset to center 
-                let top = 5 + r * Math.sin(a) / vw + "vw";
-                let left = 5 + r * Math.cos(a) / vw + "vw";
-                document.getElementById("knob").style.top = top;
-                document.getElementById("knob").style.left = left;
-            }, false);
-            // reset knob position
-            window.addEventListener("touchend", () => {
-                for (let key of controlKeys)
-                    this.keysPressed[key] = false;
-                document.getElementById("knob").style.top = "5vw";
-                document.getElementById("knob").style.left = "5vw";
-            }, false);
-        }
+        let isTouchDevice = "ontouchstart" in window ||
+            navigator.maxTouchPoints > 0;
+        this.setupControls(isTouchDevice);
         // set up window resizing
         window.addEventListener("resize", () => {
             this.width = window.innerWidth;
@@ -140,9 +90,44 @@ class GameScene extends THREE.Scene {
             this.filter.setSize(this.width, this.height);
         }, false);
     }
+    setupBackgroundEntities(number = 5000, distance = 1000, offset = 200) {
+        this.satellites = [];
+        let material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+        let geometry = new THREE.SphereGeometry(1, 4, 2);
+        let mesh = new THREE.Mesh(geometry, material);
+        for (let i = 0; i < number; i++) {
+            let position = (0, functions_1.randomVector)();
+            // distribute stars in a spherical manner
+            // prevent stars from concentrating around the corners of a cube
+            while (position.length() < 0.5 && position.length() > 1)
+                position = (0, functions_1.randomVector)();
+            position.normalize();
+            position.multiplyScalar(distance + Math.random() * offset);
+            // small chance to create a bigger geometry
+            if (Math.random() < 0.05) {
+                // create a convex hull from a random set of points
+                let points = Array(Math.ceil(Math.random() * 8) + 8).fill(0)
+                    .map(_ => (0, functions_1.randomVector)().multiplyScalar(Math.random() * 20));
+                let geometry = new ConvexGeometry_1.ConvexGeometry(points);
+                let direction = (0, functions_1.randomVector)().multiplyScalar(0.1);
+                let rotationRate = (0, functions_1.randomVector)().multiplyScalar(0.001);
+                let satellite = new objects_1.Satellite(geometry, material, direction, rotationRate);
+                satellite.position.set(position.x, position.y, position.z);
+                // store satellites separetely so they can be updated
+                this.satellites.push(satellite);
+                this.add(satellite);
+            }
+            else {
+                // standard star is a diamond shape
+                let star = mesh.clone();
+                star.position.set(position.x, position.y, position.z);
+                this.add(star);
+            }
+        }
+    }
     render(debug) {
         // set up camera
-        this.camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 3200);
         // set up renderer
         this.renderer = new THREE.WebGLRenderer({
             canvas: document.getElementById("game"),
@@ -158,10 +143,11 @@ class GameScene extends THREE.Scene {
         this.composer.addPass(this.filter);
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
-        this.track = new objects_1.Track(this, tracks_1.testTracks[0], debug);
-        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
+        this.track = new objects_1.Track(this, tracks_1.tracks[0], debug);
+        this.setupBackgroundEntities();
+        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.bike, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
+        // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
         //     this.track.startDirection, this.track.startRotation, debug);
-        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.mustang, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         if (debug) {
@@ -184,10 +170,67 @@ class GameScene extends THREE.Scene {
             filterGroup.open();
         }
     }
-    update(dt) {
-        for (let vehicle of this.vehicles) {
-            vehicle.update(this.keysPressed, this.track, dt);
+    setupControls(isTouchDevice) {
+        // set up keyboard controls
+        this.keysPressed = {};
+        window.addEventListener("keydown", (e) => {
+            this.keysPressed[e.key.toLowerCase()] = true;
+        });
+        window.addEventListener("keyup", (e) => {
+            this.keysPressed[e.key.toLowerCase()] = false;
+        });
+        // hide joystick if not touch device
+        if (!isTouchDevice) {
+            document.getElementById("joystick").style.display = "none";
+            return;
         }
+        // set up touch joystick
+        let vw = 0.01 * this.width;
+        let vh = 0.01 * this.height;
+        let joystickRadius = 10 * vw;
+        let joystickThreshold = 0.5 * joystickRadius;
+        // get origin for joystick in px
+        let x0 = 10 * vw + joystickRadius;
+        let y0 = 50 * vh + joystickRadius;
+        // keep track of all keys so they can be reset in the touch handler
+        let controlKeys = ["w", "a", "s", "d", "shift"];
+        document.getElementById("knob").addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            for (let key of controlKeys)
+                this.keysPressed[key] = false;
+            let dx = e.touches[0].clientX - x0;
+            let dy = e.touches[0].clientY - y0;
+            // mimic wasd controls with the joystick
+            if (dy < -joystickThreshold)
+                this.keysPressed["w"] = true;
+            if (dx < -joystickThreshold)
+                this.keysPressed["a"] = true;
+            if (dy > joystickThreshold)
+                this.keysPressed["s"] = true;
+            if (dx > joystickThreshold)
+                this.keysPressed["d"] = true;
+            // clamp the displacement of the knob from the origin
+            let r = Math.min(Math.sqrt(dx ** 2 + dy ** 2), joystickRadius);
+            let a = Math.atan2(dy, dx);
+            // add back 5vw offset to center 
+            let top = 5 + r * Math.sin(a) / vw + "vw";
+            let left = 5 + r * Math.cos(a) / vw + "vw";
+            document.getElementById("knob").style.top = top;
+            document.getElementById("knob").style.left = left;
+        }, false);
+        // reset knob position
+        document.getElementById("knob").addEventListener("touchend", () => {
+            for (let key of controlKeys)
+                this.keysPressed[key] = false;
+            document.getElementById("knob").style.top = "5vw";
+            document.getElementById("knob").style.left = "5vw";
+        }, false);
+    }
+    update(dt) {
+        for (let vehicle of this.vehicles)
+            vehicle.update(this.keysPressed, this.track, dt);
+        for (let satellite of this.satellites)
+            satellite.update(dt);
         this.track.update(dt);
     }
 }
@@ -55847,6 +55890,1355 @@ const LuminosityHighPassShader = {
 
 /***/ }),
 /* 13 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ConvexGeometry": () => (/* binding */ ConvexGeometry)
+/* harmony export */ });
+/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
+/* harmony import */ var _math_ConvexHull_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(14);
+
+
+
+class ConvexGeometry extends three__WEBPACK_IMPORTED_MODULE_0__.BufferGeometry {
+
+	constructor( points = [] ) {
+
+		super();
+
+		// buffers
+
+		const vertices = [];
+		const normals = [];
+
+		if ( _math_ConvexHull_js__WEBPACK_IMPORTED_MODULE_1__.ConvexHull === undefined ) {
+
+			console.error( 'THREE.ConvexGeometry: ConvexGeometry relies on ConvexHull' );
+
+		}
+
+		const convexHull = new _math_ConvexHull_js__WEBPACK_IMPORTED_MODULE_1__.ConvexHull().setFromPoints( points );
+
+		// generate vertices and normals
+
+		const faces = convexHull.faces;
+
+		for ( let i = 0; i < faces.length; i ++ ) {
+
+			const face = faces[ i ];
+			let edge = face.edge;
+
+			// we move along a doubly-connected edge list to access all face points (see HalfEdge docs)
+
+			do {
+
+				const point = edge.head().point;
+
+				vertices.push( point.x, point.y, point.z );
+				normals.push( face.normal.x, face.normal.y, face.normal.z );
+
+				edge = edge.next;
+
+			} while ( edge !== face.edge );
+
+		}
+
+		// build geometry
+
+		this.setAttribute( 'position', new three__WEBPACK_IMPORTED_MODULE_0__.Float32BufferAttribute( vertices, 3 ) );
+		this.setAttribute( 'normal', new three__WEBPACK_IMPORTED_MODULE_0__.Float32BufferAttribute( normals, 3 ) );
+
+	}
+
+}
+
+
+
+
+/***/ }),
+/* 14 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ConvexHull": () => (/* binding */ ConvexHull),
+/* harmony export */   "Face": () => (/* binding */ Face),
+/* harmony export */   "HalfEdge": () => (/* binding */ HalfEdge),
+/* harmony export */   "VertexList": () => (/* binding */ VertexList),
+/* harmony export */   "VertexNode": () => (/* binding */ VertexNode)
+/* harmony export */ });
+/* harmony import */ var three__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2);
+
+
+/**
+ * Ported from: https://github.com/maurizzzio/quickhull3d/ by Mauricio Poppe (https://github.com/maurizzzio)
+ */
+
+const Visible = 0;
+const Deleted = 1;
+
+const _v1 = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+const _line3 = new three__WEBPACK_IMPORTED_MODULE_0__.Line3();
+const _plane = new three__WEBPACK_IMPORTED_MODULE_0__.Plane();
+const _closestPoint = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+const _triangle = new three__WEBPACK_IMPORTED_MODULE_0__.Triangle();
+
+class ConvexHull {
+
+	constructor() {
+
+		this.tolerance = - 1;
+
+		this.faces = []; // the generated faces of the convex hull
+		this.newFaces = []; // this array holds the faces that are generated within a single iteration
+
+		// the vertex lists work as follows:
+		//
+		// let 'a' and 'b' be 'Face' instances
+		// let 'v' be points wrapped as instance of 'Vertex'
+		//
+		//     [v, v, ..., v, v, v, ...]
+		//      ^             ^
+		//      |             |
+		//  a.outside     b.outside
+		//
+		this.assigned = new VertexList();
+		this.unassigned = new VertexList();
+
+		this.vertices = []; 	// vertices of the hull (internal representation of given geometry data)
+
+	}
+
+	setFromPoints( points ) {
+
+		// The algorithm needs at least four points.
+
+		if ( points.length >= 4 ) {
+
+			this.makeEmpty();
+
+			for ( let i = 0, l = points.length; i < l; i ++ ) {
+
+				this.vertices.push( new VertexNode( points[ i ] ) );
+
+			}
+
+			this.compute();
+
+		}
+
+		return this;
+
+	}
+
+	setFromObject( object ) {
+
+		const points = [];
+
+		object.updateMatrixWorld( true );
+
+		object.traverse( function ( node ) {
+
+			const geometry = node.geometry;
+
+			if ( geometry !== undefined ) {
+
+				const attribute = geometry.attributes.position;
+
+				if ( attribute !== undefined ) {
+
+					for ( let i = 0, l = attribute.count; i < l; i ++ ) {
+
+						const point = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+
+						point.fromBufferAttribute( attribute, i ).applyMatrix4( node.matrixWorld );
+
+						points.push( point );
+
+					}
+
+				}
+
+			}
+
+		} );
+
+		return this.setFromPoints( points );
+
+	}
+
+	containsPoint( point ) {
+
+		const faces = this.faces;
+
+		for ( let i = 0, l = faces.length; i < l; i ++ ) {
+
+			const face = faces[ i ];
+
+			// compute signed distance and check on what half space the point lies
+
+			if ( face.distanceToPoint( point ) > this.tolerance ) return false;
+
+		}
+
+		return true;
+
+	}
+
+	intersectRay( ray, target ) {
+
+		// based on "Fast Ray-Convex Polyhedron Intersection" by Eric Haines, GRAPHICS GEMS II
+
+		const faces = this.faces;
+
+		let tNear = - Infinity;
+		let tFar = Infinity;
+
+		for ( let i = 0, l = faces.length; i < l; i ++ ) {
+
+			const face = faces[ i ];
+
+			// interpret faces as planes for the further computation
+
+			const vN = face.distanceToPoint( ray.origin );
+			const vD = face.normal.dot( ray.direction );
+
+			// if the origin is on the positive side of a plane (so the plane can "see" the origin) and
+			// the ray is turned away or parallel to the plane, there is no intersection
+
+			if ( vN > 0 && vD >= 0 ) return null;
+
+			// compute the distance from the ray’s origin to the intersection with the plane
+
+			const t = ( vD !== 0 ) ? ( - vN / vD ) : 0;
+
+			// only proceed if the distance is positive. a negative distance means the intersection point
+			// lies "behind" the origin
+
+			if ( t <= 0 ) continue;
+
+			// now categorized plane as front-facing or back-facing
+
+			if ( vD > 0 ) {
+
+				// plane faces away from the ray, so this plane is a back-face
+
+				tFar = Math.min( t, tFar );
+
+			} else {
+
+				// front-face
+
+				tNear = Math.max( t, tNear );
+
+			}
+
+			if ( tNear > tFar ) {
+
+				// if tNear ever is greater than tFar, the ray must miss the convex hull
+
+				return null;
+
+			}
+
+		}
+
+		// evaluate intersection point
+
+		// always try tNear first since its the closer intersection point
+
+		if ( tNear !== - Infinity ) {
+
+			ray.at( tNear, target );
+
+		} else {
+
+			ray.at( tFar, target );
+
+		}
+
+		return target;
+
+	}
+
+	intersectsRay( ray ) {
+
+		return this.intersectRay( ray, _v1 ) !== null;
+
+	}
+
+	makeEmpty() {
+
+		this.faces = [];
+		this.vertices = [];
+
+		return this;
+
+	}
+
+	// Adds a vertex to the 'assigned' list of vertices and assigns it to the given face
+
+	addVertexToFace( vertex, face ) {
+
+		vertex.face = face;
+
+		if ( face.outside === null ) {
+
+			this.assigned.append( vertex );
+
+		} else {
+
+			this.assigned.insertBefore( face.outside, vertex );
+
+		}
+
+		face.outside = vertex;
+
+		return this;
+
+	}
+
+	// Removes a vertex from the 'assigned' list of vertices and from the given face
+
+	removeVertexFromFace( vertex, face ) {
+
+		if ( vertex === face.outside ) {
+
+			// fix face.outside link
+
+			if ( vertex.next !== null && vertex.next.face === face ) {
+
+				// face has at least 2 outside vertices, move the 'outside' reference
+
+				face.outside = vertex.next;
+
+			} else {
+
+				// vertex was the only outside vertex that face had
+
+				face.outside = null;
+
+			}
+
+		}
+
+		this.assigned.remove( vertex );
+
+		return this;
+
+	}
+
+	// Removes all the visible vertices that a given face is able to see which are stored in the 'assigned' vertex list
+
+	removeAllVerticesFromFace( face ) {
+
+		if ( face.outside !== null ) {
+
+			// reference to the first and last vertex of this face
+
+			const start = face.outside;
+			let end = face.outside;
+
+			while ( end.next !== null && end.next.face === face ) {
+
+				end = end.next;
+
+			}
+
+			this.assigned.removeSubList( start, end );
+
+			// fix references
+
+			start.prev = end.next = null;
+			face.outside = null;
+
+			return start;
+
+		}
+
+	}
+
+	// Removes all the visible vertices that 'face' is able to see
+
+	deleteFaceVertices( face, absorbingFace ) {
+
+		const faceVertices = this.removeAllVerticesFromFace( face );
+
+		if ( faceVertices !== undefined ) {
+
+			if ( absorbingFace === undefined ) {
+
+				// mark the vertices to be reassigned to some other face
+
+				this.unassigned.appendChain( faceVertices );
+
+
+			} else {
+
+				// if there's an absorbing face try to assign as many vertices as possible to it
+
+				let vertex = faceVertices;
+
+				do {
+
+					// we need to buffer the subsequent vertex at this point because the 'vertex.next' reference
+					// will be changed by upcoming method calls
+
+					const nextVertex = vertex.next;
+
+					const distance = absorbingFace.distanceToPoint( vertex.point );
+
+					// check if 'vertex' is able to see 'absorbingFace'
+
+					if ( distance > this.tolerance ) {
+
+						this.addVertexToFace( vertex, absorbingFace );
+
+					} else {
+
+						this.unassigned.append( vertex );
+
+					}
+
+					// now assign next vertex
+
+					vertex = nextVertex;
+
+				} while ( vertex !== null );
+
+			}
+
+		}
+
+		return this;
+
+	}
+
+	// Reassigns as many vertices as possible from the unassigned list to the new faces
+
+	resolveUnassignedPoints( newFaces ) {
+
+		if ( this.unassigned.isEmpty() === false ) {
+
+			let vertex = this.unassigned.first();
+
+			do {
+
+				// buffer 'next' reference, see .deleteFaceVertices()
+
+				const nextVertex = vertex.next;
+
+				let maxDistance = this.tolerance;
+
+				let maxFace = null;
+
+				for ( let i = 0; i < newFaces.length; i ++ ) {
+
+					const face = newFaces[ i ];
+
+					if ( face.mark === Visible ) {
+
+						const distance = face.distanceToPoint( vertex.point );
+
+						if ( distance > maxDistance ) {
+
+							maxDistance = distance;
+							maxFace = face;
+
+						}
+
+						if ( maxDistance > 1000 * this.tolerance ) break;
+
+					}
+
+				}
+
+				// 'maxFace' can be null e.g. if there are identical vertices
+
+				if ( maxFace !== null ) {
+
+					this.addVertexToFace( vertex, maxFace );
+
+				}
+
+				vertex = nextVertex;
+
+			} while ( vertex !== null );
+
+		}
+
+		return this;
+
+	}
+
+	// Computes the extremes of a simplex which will be the initial hull
+
+	computeExtremes() {
+
+		const min = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+		const max = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+
+		const minVertices = [];
+		const maxVertices = [];
+
+		// initially assume that the first vertex is the min/max
+
+		for ( let i = 0; i < 3; i ++ ) {
+
+			minVertices[ i ] = maxVertices[ i ] = this.vertices[ 0 ];
+
+		}
+
+		min.copy( this.vertices[ 0 ].point );
+		max.copy( this.vertices[ 0 ].point );
+
+		// compute the min/max vertex on all six directions
+
+		for ( let i = 0, l = this.vertices.length; i < l; i ++ ) {
+
+			const vertex = this.vertices[ i ];
+			const point = vertex.point;
+
+			// update the min coordinates
+
+			for ( let j = 0; j < 3; j ++ ) {
+
+				if ( point.getComponent( j ) < min.getComponent( j ) ) {
+
+					min.setComponent( j, point.getComponent( j ) );
+					minVertices[ j ] = vertex;
+
+				}
+
+			}
+
+			// update the max coordinates
+
+			for ( let j = 0; j < 3; j ++ ) {
+
+				if ( point.getComponent( j ) > max.getComponent( j ) ) {
+
+					max.setComponent( j, point.getComponent( j ) );
+					maxVertices[ j ] = vertex;
+
+				}
+
+			}
+
+		}
+
+		// use min/max vectors to compute an optimal epsilon
+
+		this.tolerance = 3 * Number.EPSILON * (
+			Math.max( Math.abs( min.x ), Math.abs( max.x ) ) +
+			Math.max( Math.abs( min.y ), Math.abs( max.y ) ) +
+			Math.max( Math.abs( min.z ), Math.abs( max.z ) )
+		);
+
+		return { min: minVertices, max: maxVertices };
+
+	}
+
+	// Computes the initial simplex assigning to its faces all the points
+	// that are candidates to form part of the hull
+
+	computeInitialHull() {
+
+		const vertices = this.vertices;
+		const extremes = this.computeExtremes();
+		const min = extremes.min;
+		const max = extremes.max;
+
+		// 1. Find the two vertices 'v0' and 'v1' with the greatest 1d separation
+		// (max.x - min.x)
+		// (max.y - min.y)
+		// (max.z - min.z)
+
+		let maxDistance = 0;
+		let index = 0;
+
+		for ( let i = 0; i < 3; i ++ ) {
+
+			const distance = max[ i ].point.getComponent( i ) - min[ i ].point.getComponent( i );
+
+			if ( distance > maxDistance ) {
+
+				maxDistance = distance;
+				index = i;
+
+			}
+
+		}
+
+		const v0 = min[ index ];
+		const v1 = max[ index ];
+		let v2;
+		let v3;
+
+		// 2. The next vertex 'v2' is the one farthest to the line formed by 'v0' and 'v1'
+
+		maxDistance = 0;
+		_line3.set( v0.point, v1.point );
+
+		for ( let i = 0, l = this.vertices.length; i < l; i ++ ) {
+
+			const vertex = vertices[ i ];
+
+			if ( vertex !== v0 && vertex !== v1 ) {
+
+				_line3.closestPointToPoint( vertex.point, true, _closestPoint );
+
+				const distance = _closestPoint.distanceToSquared( vertex.point );
+
+				if ( distance > maxDistance ) {
+
+					maxDistance = distance;
+					v2 = vertex;
+
+				}
+
+			}
+
+		}
+
+		// 3. The next vertex 'v3' is the one farthest to the plane 'v0', 'v1', 'v2'
+
+		maxDistance = - 1;
+		_plane.setFromCoplanarPoints( v0.point, v1.point, v2.point );
+
+		for ( let i = 0, l = this.vertices.length; i < l; i ++ ) {
+
+			const vertex = vertices[ i ];
+
+			if ( vertex !== v0 && vertex !== v1 && vertex !== v2 ) {
+
+				const distance = Math.abs( _plane.distanceToPoint( vertex.point ) );
+
+				if ( distance > maxDistance ) {
+
+					maxDistance = distance;
+					v3 = vertex;
+
+				}
+
+			}
+
+		}
+
+		const faces = [];
+
+		if ( _plane.distanceToPoint( v3.point ) < 0 ) {
+
+			// the face is not able to see the point so 'plane.normal' is pointing outside the tetrahedron
+
+			faces.push(
+				Face.create( v0, v1, v2 ),
+				Face.create( v3, v1, v0 ),
+				Face.create( v3, v2, v1 ),
+				Face.create( v3, v0, v2 )
+			);
+
+			// set the twin edge
+
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const j = ( i + 1 ) % 3;
+
+				// join face[ i ] i > 0, with the first face
+
+				faces[ i + 1 ].getEdge( 2 ).setTwin( faces[ 0 ].getEdge( j ) );
+
+				// join face[ i ] with face[ i + 1 ], 1 <= i <= 3
+
+				faces[ i + 1 ].getEdge( 1 ).setTwin( faces[ j + 1 ].getEdge( 0 ) );
+
+			}
+
+		} else {
+
+			// the face is able to see the point so 'plane.normal' is pointing inside the tetrahedron
+
+			faces.push(
+				Face.create( v0, v2, v1 ),
+				Face.create( v3, v0, v1 ),
+				Face.create( v3, v1, v2 ),
+				Face.create( v3, v2, v0 )
+			);
+
+			// set the twin edge
+
+			for ( let i = 0; i < 3; i ++ ) {
+
+				const j = ( i + 1 ) % 3;
+
+				// join face[ i ] i > 0, with the first face
+
+				faces[ i + 1 ].getEdge( 2 ).setTwin( faces[ 0 ].getEdge( ( 3 - i ) % 3 ) );
+
+				// join face[ i ] with face[ i + 1 ]
+
+				faces[ i + 1 ].getEdge( 0 ).setTwin( faces[ j + 1 ].getEdge( 1 ) );
+
+			}
+
+		}
+
+		// the initial hull is the tetrahedron
+
+		for ( let i = 0; i < 4; i ++ ) {
+
+			this.faces.push( faces[ i ] );
+
+		}
+
+		// initial assignment of vertices to the faces of the tetrahedron
+
+		for ( let i = 0, l = vertices.length; i < l; i ++ ) {
+
+			const vertex = vertices[ i ];
+
+			if ( vertex !== v0 && vertex !== v1 && vertex !== v2 && vertex !== v3 ) {
+
+				maxDistance = this.tolerance;
+				let maxFace = null;
+
+				for ( let j = 0; j < 4; j ++ ) {
+
+					const distance = this.faces[ j ].distanceToPoint( vertex.point );
+
+					if ( distance > maxDistance ) {
+
+						maxDistance = distance;
+						maxFace = this.faces[ j ];
+
+					}
+
+				}
+
+				if ( maxFace !== null ) {
+
+					this.addVertexToFace( vertex, maxFace );
+
+				}
+
+			}
+
+		}
+
+		return this;
+
+	}
+
+	// Removes inactive faces
+
+	reindexFaces() {
+
+		const activeFaces = [];
+
+		for ( let i = 0; i < this.faces.length; i ++ ) {
+
+			const face = this.faces[ i ];
+
+			if ( face.mark === Visible ) {
+
+				activeFaces.push( face );
+
+			}
+
+		}
+
+		this.faces = activeFaces;
+
+		return this;
+
+	}
+
+	// Finds the next vertex to create faces with the current hull
+
+	nextVertexToAdd() {
+
+		// if the 'assigned' list of vertices is empty, no vertices are left. return with 'undefined'
+
+		if ( this.assigned.isEmpty() === false ) {
+
+			let eyeVertex, maxDistance = 0;
+
+			// grap the first available face and start with the first visible vertex of that face
+
+			const eyeFace = this.assigned.first().face;
+			let vertex = eyeFace.outside;
+
+			// now calculate the farthest vertex that face can see
+
+			do {
+
+				const distance = eyeFace.distanceToPoint( vertex.point );
+
+				if ( distance > maxDistance ) {
+
+					maxDistance = distance;
+					eyeVertex = vertex;
+
+				}
+
+				vertex = vertex.next;
+
+			} while ( vertex !== null && vertex.face === eyeFace );
+
+			return eyeVertex;
+
+		}
+
+	}
+
+	// Computes a chain of half edges in CCW order called the 'horizon'.
+	// For an edge to be part of the horizon it must join a face that can see
+	// 'eyePoint' and a face that cannot see 'eyePoint'.
+
+	computeHorizon( eyePoint, crossEdge, face, horizon ) {
+
+		// moves face's vertices to the 'unassigned' vertex list
+
+		this.deleteFaceVertices( face );
+
+		face.mark = Deleted;
+
+		let edge;
+
+		if ( crossEdge === null ) {
+
+			edge = crossEdge = face.getEdge( 0 );
+
+		} else {
+
+			// start from the next edge since 'crossEdge' was already analyzed
+			// (actually 'crossEdge.twin' was the edge who called this method recursively)
+
+			edge = crossEdge.next;
+
+		}
+
+		do {
+
+			const twinEdge = edge.twin;
+			const oppositeFace = twinEdge.face;
+
+			if ( oppositeFace.mark === Visible ) {
+
+				if ( oppositeFace.distanceToPoint( eyePoint ) > this.tolerance ) {
+
+					// the opposite face can see the vertex, so proceed with next edge
+
+					this.computeHorizon( eyePoint, twinEdge, oppositeFace, horizon );
+
+				} else {
+
+					// the opposite face can't see the vertex, so this edge is part of the horizon
+
+					horizon.push( edge );
+
+				}
+
+			}
+
+			edge = edge.next;
+
+		} while ( edge !== crossEdge );
+
+		return this;
+
+	}
+
+	// Creates a face with the vertices 'eyeVertex.point', 'horizonEdge.tail' and 'horizonEdge.head' in CCW order
+
+	addAdjoiningFace( eyeVertex, horizonEdge ) {
+
+		// all the half edges are created in ccw order thus the face is always pointing outside the hull
+
+		const face = Face.create( eyeVertex, horizonEdge.tail(), horizonEdge.head() );
+
+		this.faces.push( face );
+
+		// join face.getEdge( - 1 ) with the horizon's opposite edge face.getEdge( - 1 ) = face.getEdge( 2 )
+
+		face.getEdge( - 1 ).setTwin( horizonEdge.twin );
+
+		return face.getEdge( 0 ); // the half edge whose vertex is the eyeVertex
+
+
+	}
+
+	//  Adds 'horizon.length' faces to the hull, each face will be linked with the
+	//  horizon opposite face and the face on the left/right
+
+	addNewFaces( eyeVertex, horizon ) {
+
+		this.newFaces = [];
+
+		let firstSideEdge = null;
+		let previousSideEdge = null;
+
+		for ( let i = 0; i < horizon.length; i ++ ) {
+
+			const horizonEdge = horizon[ i ];
+
+			// returns the right side edge
+
+			const sideEdge = this.addAdjoiningFace( eyeVertex, horizonEdge );
+
+			if ( firstSideEdge === null ) {
+
+				firstSideEdge = sideEdge;
+
+			} else {
+
+				// joins face.getEdge( 1 ) with previousFace.getEdge( 0 )
+
+				sideEdge.next.setTwin( previousSideEdge );
+
+			}
+
+			this.newFaces.push( sideEdge.face );
+			previousSideEdge = sideEdge;
+
+		}
+
+		// perform final join of new faces
+
+		firstSideEdge.next.setTwin( previousSideEdge );
+
+		return this;
+
+	}
+
+	// Adds a vertex to the hull
+
+	addVertexToHull( eyeVertex ) {
+
+		const horizon = [];
+
+		this.unassigned.clear();
+
+		// remove 'eyeVertex' from 'eyeVertex.face' so that it can't be added to the 'unassigned' vertex list
+
+		this.removeVertexFromFace( eyeVertex, eyeVertex.face );
+
+		this.computeHorizon( eyeVertex.point, null, eyeVertex.face, horizon );
+
+		this.addNewFaces( eyeVertex, horizon );
+
+		// reassign 'unassigned' vertices to the new faces
+
+		this.resolveUnassignedPoints( this.newFaces );
+
+		return	this;
+
+	}
+
+	cleanup() {
+
+		this.assigned.clear();
+		this.unassigned.clear();
+		this.newFaces = [];
+
+		return this;
+
+	}
+
+	compute() {
+
+		let vertex;
+
+		this.computeInitialHull();
+
+		// add all available vertices gradually to the hull
+
+		while ( ( vertex = this.nextVertexToAdd() ) !== undefined ) {
+
+			this.addVertexToHull( vertex );
+
+		}
+
+		this.reindexFaces();
+
+		this.cleanup();
+
+		return this;
+
+	}
+
+}
+
+//
+
+class Face {
+
+	constructor() {
+
+		this.normal = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+		this.midpoint = new three__WEBPACK_IMPORTED_MODULE_0__.Vector3();
+		this.area = 0;
+
+		this.constant = 0; // signed distance from face to the origin
+		this.outside = null; // reference to a vertex in a vertex list this face can see
+		this.mark = Visible;
+		this.edge = null;
+
+	}
+
+	static create( a, b, c ) {
+
+		const face = new Face();
+
+		const e0 = new HalfEdge( a, face );
+		const e1 = new HalfEdge( b, face );
+		const e2 = new HalfEdge( c, face );
+
+		// join edges
+
+		e0.next = e2.prev = e1;
+		e1.next = e0.prev = e2;
+		e2.next = e1.prev = e0;
+
+		// main half edge reference
+
+		face.edge = e0;
+
+		return face.compute();
+
+	}
+
+	getEdge( i ) {
+
+		let edge = this.edge;
+
+		while ( i > 0 ) {
+
+			edge = edge.next;
+			i --;
+
+		}
+
+		while ( i < 0 ) {
+
+			edge = edge.prev;
+			i ++;
+
+		}
+
+		return edge;
+
+	}
+
+	compute() {
+
+		const a = this.edge.tail();
+		const b = this.edge.head();
+		const c = this.edge.next.head();
+
+		_triangle.set( a.point, b.point, c.point );
+
+		_triangle.getNormal( this.normal );
+		_triangle.getMidpoint( this.midpoint );
+		this.area = _triangle.getArea();
+
+		this.constant = this.normal.dot( this.midpoint );
+
+		return this;
+
+	}
+
+	distanceToPoint( point ) {
+
+		return this.normal.dot( point ) - this.constant;
+
+	}
+
+}
+
+// Entity for a Doubly-Connected Edge List (DCEL).
+
+class HalfEdge {
+
+
+	constructor( vertex, face ) {
+
+		this.vertex = vertex;
+		this.prev = null;
+		this.next = null;
+		this.twin = null;
+		this.face = face;
+
+	}
+
+	head() {
+
+		return this.vertex;
+
+	}
+
+	tail() {
+
+		return this.prev ? this.prev.vertex : null;
+
+	}
+
+	length() {
+
+		const head = this.head();
+		const tail = this.tail();
+
+		if ( tail !== null ) {
+
+			return tail.point.distanceTo( head.point );
+
+		}
+
+		return - 1;
+
+	}
+
+	lengthSquared() {
+
+		const head = this.head();
+		const tail = this.tail();
+
+		if ( tail !== null ) {
+
+			return tail.point.distanceToSquared( head.point );
+
+		}
+
+		return - 1;
+
+	}
+
+	setTwin( edge ) {
+
+		this.twin = edge;
+		edge.twin = this;
+
+		return this;
+
+	}
+
+}
+
+// A vertex as a double linked list node.
+
+class VertexNode {
+
+	constructor( point ) {
+
+		this.point = point;
+		this.prev = null;
+		this.next = null;
+		this.face = null; // the face that is able to see this vertex
+
+	}
+
+}
+
+// A double linked list that contains vertex nodes.
+
+class VertexList {
+
+	constructor() {
+
+		this.head = null;
+		this.tail = null;
+
+	}
+
+	first() {
+
+		return this.head;
+
+	}
+
+	last() {
+
+		return this.tail;
+
+	}
+
+	clear() {
+
+		this.head = this.tail = null;
+
+		return this;
+
+	}
+
+	// Inserts a vertex before the target vertex
+
+	insertBefore( target, vertex ) {
+
+		vertex.prev = target.prev;
+		vertex.next = target;
+
+		if ( vertex.prev === null ) {
+
+			this.head = vertex;
+
+		} else {
+
+			vertex.prev.next = vertex;
+
+		}
+
+		target.prev = vertex;
+
+		return this;
+
+	}
+
+	// Inserts a vertex after the target vertex
+
+	insertAfter( target, vertex ) {
+
+		vertex.prev = target;
+		vertex.next = target.next;
+
+		if ( vertex.next === null ) {
+
+			this.tail = vertex;
+
+		} else {
+
+			vertex.next.prev = vertex;
+
+		}
+
+		target.next = vertex;
+
+		return this;
+
+	}
+
+	// Appends a vertex to the end of the linked list
+
+	append( vertex ) {
+
+		if ( this.head === null ) {
+
+			this.head = vertex;
+
+		} else {
+
+			this.tail.next = vertex;
+
+		}
+
+		vertex.prev = this.tail;
+		vertex.next = null; // the tail has no subsequent vertex
+
+		this.tail = vertex;
+
+		return this;
+
+	}
+
+	// Appends a chain of vertices where 'vertex' is the head.
+
+	appendChain( vertex ) {
+
+		if ( this.head === null ) {
+
+			this.head = vertex;
+
+		} else {
+
+			this.tail.next = vertex;
+
+		}
+
+		vertex.prev = this.tail;
+
+		// ensure that the 'tail' reference points to the last vertex of the chain
+
+		while ( vertex.next !== null ) {
+
+			vertex = vertex.next;
+
+		}
+
+		this.tail = vertex;
+
+		return this;
+
+	}
+
+	// Removes a vertex from the linked list
+
+	remove( vertex ) {
+
+		if ( vertex.prev === null ) {
+
+			this.head = vertex.next;
+
+		} else {
+
+			vertex.prev.next = vertex.next;
+
+		}
+
+		if ( vertex.next === null ) {
+
+			this.tail = vertex.prev;
+
+		} else {
+
+			vertex.next.prev = vertex.prev;
+
+		}
+
+		return this;
+
+	}
+
+	// Removes a list of vertices whose 'head' is 'a' and whose 'tail' is b
+
+	removeSubList( a, b ) {
+
+		if ( a.prev === null ) {
+
+			this.head = b.next;
+
+		} else {
+
+			a.prev.next = b.next;
+
+		}
+
+		if ( b.next === null ) {
+
+			this.tail = a.prev;
+
+		} else {
+
+			b.next.prev = a.prev;
+
+		}
+
+		return this;
+
+	}
+
+	isEmpty() {
+
+		return this.head === null;
+
+	}
+
+}
+
+
+
+
+/***/ }),
+/* 15 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -55854,15 +57246,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Vehicle = exports.Track = void 0;
-var Track_1 = __webpack_require__(14);
+exports.Vehicle = exports.Track = exports.Satellite = void 0;
+var Satellite_1 = __webpack_require__(16);
+Object.defineProperty(exports, "Satellite", ({ enumerable: true, get: function () { return __importDefault(Satellite_1).default; } }));
+var Track_1 = __webpack_require__(17);
 Object.defineProperty(exports, "Track", ({ enumerable: true, get: function () { return __importDefault(Track_1).default; } }));
-var Vehicle_1 = __webpack_require__(16);
+var Vehicle_1 = __webpack_require__(19);
 Object.defineProperty(exports, "Vehicle", ({ enumerable: true, get: function () { return __importDefault(Vehicle_1).default; } }));
 
 
 /***/ }),
-/* 14 */
+/* 16 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -55891,7 +57285,62 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-const debug_1 = __webpack_require__(15);
+class Satellite extends THREE.Mesh {
+    constructor(geometry, material, direction, rotationRate) {
+        super(geometry, material);
+        this.direction = direction;
+        this.rotationRate = rotationRate;
+    }
+    update(dt) {
+        if (!dt)
+            return;
+        // apply centripetal force to direction vector
+        let r = this.position.length();
+        let v = this.position.clone().multiplyScalar(this.position.clone().dot(this.direction.clone()) / Math.pow(r, 2));
+        this.direction = this.direction.sub(v);
+        // orbit object around origin
+        this.position.add(this.direction);
+        this.position.normalize().multiplyScalar(r);
+        // rotate mesh
+        this.rotateX(this.rotationRate.x * dt);
+        this.rotateY(this.rotationRate.y * dt);
+        this.rotateZ(this.rotationRate.z * dt);
+    }
+}
+exports["default"] = Satellite;
+
+
+/***/ }),
+/* 17 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
+const debug_1 = __webpack_require__(18);
 class Track {
     constructor(scene, trackData, debug) {
         this.startPoint = trackData.startPoint;
@@ -55946,20 +57395,22 @@ class Track {
         document.getElementsByTagName("body")[0].style
             .background = background;
         // set up grid
-        let grid = new THREE.GridHelper(1000, 1000, trackData.gridColor, trackData.gridColor);
-        scene.add(grid);
+        if (trackData.gridColor) {
+            let grid = new THREE.GridHelper(1000, 1000, trackData.gridColor, trackData.gridColor);
+            scene.add(grid);
+        }
         // set up platforms
         this.movingPlatforms = [];
         // make collision layer invisible and above the road
-        let transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
-        this.body = this.createTrack(trackData.curves, trackData.extrudeShapes, trackData.extrudeOptions, transparentMaterial, debug, scene);
+        let collisionLayer = trackData.layers.shift();
+        this.body = this.createTrack(trackData.curves, collisionLayer.shapes, trackData.extrudeOptions, collisionLayer.material, debug, scene);
         scene.add(this.body);
-        // road layer
-        let surfaceLayer = this.createTrack(trackData.curves, trackData.surfaceExtrudeShapes, trackData.extrudeOptions, trackData.surfaceMaterial, debug, scene);
-        scene.add(surfaceLayer);
-        // outline of road layer
-        let outlineLayer = this.createTrack(trackData.curves, trackData.outlineExtrudeShapes, trackData.extrudeOptions, trackData.outlineMaterial, debug, scene);
-        scene.add(outlineLayer);
+        // add all layers
+        // e.g. surface layer and outline layer
+        for (let layerData of trackData.layers) {
+            let layer = this.createTrack(trackData.curves, layerData.shapes, trackData.extrudeOptions, layerData.material, debug, scene);
+            scene.add(layer);
+        }
         for (let platform of this.movingPlatforms)
             scene.add(platform.mesh);
     }
@@ -55983,7 +57434,7 @@ exports["default"] = Track;
 
 
 /***/ }),
-/* 15 */
+/* 18 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -56055,7 +57506,7 @@ exports.DebugVector = DebugVector;
 
 
 /***/ }),
-/* 16 */
+/* 19 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -56093,8 +57544,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-const debug_1 = __webpack_require__(15);
-const GLTFLoader_1 = __webpack_require__(17);
+const debug_1 = __webpack_require__(18);
+const GLTFLoader_1 = __webpack_require__(20);
 let defaultGravity = new THREE.Vector3(0, -0.008, 0);
 class Vehicle {
     constructor(scene, camera, vehicleData, position, direction, rotation, debug) {
@@ -56282,7 +57733,7 @@ exports["default"] = Vehicle;
 
 
 /***/ }),
-/* 17 */
+/* 20 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -60631,7 +62082,44 @@ function toTrianglesDrawMode( geometry, drawMode ) {
 
 
 /***/ }),
-/* 18 */
+/* 21 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.randomVector = void 0;
+const THREE = __importStar(__webpack_require__(2));
+function randomVector() {
+    return new THREE.Vector3(Math.random() * (Math.random() < 0.5 ? 1 : -1), Math.random() * (Math.random() < 0.5 ? 1 : -1), Math.random() * (Math.random() < 0.5 ? 1 : -1));
+}
+exports.randomVector = randomVector;
+
+
+/***/ }),
+/* 22 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -60639,17 +62127,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.testTracks = void 0;
-const track_0_1 = __importDefault(__webpack_require__(19));
-const track_8_1 = __importDefault(__webpack_require__(20));
-const track_s_1 = __importDefault(__webpack_require__(21));
-const track_y_1 = __importDefault(__webpack_require__(22));
+exports.tracks = exports.testTracks = void 0;
+const track_0_1 = __importDefault(__webpack_require__(23));
+const track_8_1 = __importDefault(__webpack_require__(24));
+const track_s_1 = __importDefault(__webpack_require__(25));
+const track_y_1 = __importDefault(__webpack_require__(26));
+const track_1_1 = __importDefault(__webpack_require__(27));
 let testTracks = [track_0_1.default, track_8_1.default, track_s_1.default, track_y_1.default];
 exports.testTracks = testTracks;
+let tracks = [track_1_1.default];
+exports.tracks = tracks;
 
 
 /***/ }),
-/* 19 */
+/* 23 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -60696,36 +62187,48 @@ let track_0 = {
             extrudeShapeIndex: 0
         },
     ],
-    extrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(7, 0),
-            new THREE.Vector2(-7, 0),
-        ])
-    ],
-    surfaceExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(6, 0.4),
-            new THREE.Vector2(-6, 0.4),
-        ])
-    ],
-    outlineExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(7, 0.5),
-            new THREE.Vector2(-7, 0.5),
-        ])
+    layers: [
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(7, 0),
+                    new THREE.Vector2(-7, 0),
+                ])
+            ],
+            material: new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(6, 0.4),
+                    new THREE.Vector2(-6, 0.4),
+                ])
+            ],
+            material: new THREE.MeshLambertMaterial({
+                color: 0x000e54,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(7, 0.5),
+                    new THREE.Vector2(-7, 0.5),
+                ])
+            ],
+            material: new THREE.MeshStandardMaterial({
+                color: 0x99ccff,
+                wireframe: false
+            })
+        }
     ],
     extrudeOptions: {
         steps: 640,
         bevelEnabled: true,
     },
-    surfaceMaterial: new THREE.MeshLambertMaterial({
-        color: 0x000e54,
-        wireframe: false
-    }),
-    outlineMaterial: new THREE.MeshStandardMaterial({
-        color: 0x99ccff,
-        wireframe: false
-    }),
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
@@ -60733,7 +62236,7 @@ exports["default"] = track_0;
 
 
 /***/ }),
-/* 20 */
+/* 24 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -60802,36 +62305,48 @@ let track_8 = {
             extrudeShapeIndex: 0
         }
     ],
-    extrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0, 5),
-            new THREE.Vector2(0, -5),
-        ])
-    ],
-    surfaceExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.4, 5),
-            new THREE.Vector2(0.4, -5),
-        ])
-    ],
-    outlineExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.5, 5.6),
-            new THREE.Vector2(0.5, -5.6),
-        ])
+    layers: [
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0, 5),
+                    new THREE.Vector2(0, -5),
+                ])
+            ],
+            material: new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0.4, 5),
+                    new THREE.Vector2(0.4, -5),
+                ])
+            ],
+            material: new THREE.MeshLambertMaterial({
+                color: 0x000e54,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0.5, 5.6),
+                    new THREE.Vector2(0.5, -5.6),
+                ])
+            ],
+            material: new THREE.MeshStandardMaterial({
+                color: 0x99ccff,
+                wireframe: false
+            })
+        }
     ],
     extrudeOptions: {
         steps: 640,
         bevelEnabled: true,
     },
-    surfaceMaterial: new THREE.MeshLambertMaterial({
-        color: 0x000e54,
-        wireframe: false
-    }),
-    outlineMaterial: new THREE.MeshStandardMaterial({
-        color: 0x99ccff,
-        wireframe: false
-    }),
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
@@ -60839,7 +62354,7 @@ exports["default"] = track_8;
 
 
 /***/ }),
-/* 21 */
+/* 25 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -61002,36 +62517,48 @@ let track_s = {
             phase: 8000
         },
     ],
-    extrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0, 5),
-            new THREE.Vector2(0, -5),
-        ])
-    ],
-    surfaceExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.4, 4),
-            new THREE.Vector2(0.4, -4),
-        ])
-    ],
-    outlineExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.5, 5),
-            new THREE.Vector2(0.5, -5),
-        ])
+    layers: [
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0, 5),
+                    new THREE.Vector2(0, -5),
+                ])
+            ],
+            material: new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0.4, 4),
+                    new THREE.Vector2(0.4, -4),
+                ])
+            ],
+            material: new THREE.MeshLambertMaterial({
+                color: 0x000e54,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0.5, 5),
+                    new THREE.Vector2(0.5, -5),
+                ])
+            ],
+            material: new THREE.MeshStandardMaterial({
+                color: 0x99ccff,
+                wireframe: false
+            })
+        }
     ],
     extrudeOptions: {
         steps: 640,
         bevelEnabled: true,
     },
-    surfaceMaterial: new THREE.MeshLambertMaterial({
-        color: 0x000e54,
-        wireframe: false
-    }),
-    outlineMaterial: new THREE.MeshStandardMaterial({
-        color: 0x99ccff,
-        wireframe: false
-    }),
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
@@ -61039,7 +62566,7 @@ exports["default"] = track_s;
 
 
 /***/ }),
-/* 22 */
+/* 26 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -61119,60 +62646,72 @@ let track_y = {
             extrudeShapeIndex: 2
         },
     ],
-    extrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0, 10),
-            new THREE.Vector2(0, -10),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(0, 5),
-            new THREE.Vector2(0, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0),
-            new THREE.Vector2(-5, 0),
-        ]),
-    ],
-    surfaceExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.4, 9),
-            new THREE.Vector2(0.4, -9),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(0.4, 4),
-            new THREE.Vector2(0.4, -4),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(4, 0.4),
-            new THREE.Vector2(-4, 0.4),
-        ]),
-    ],
-    outlineExtrudeShapes: [
-        new THREE.Shape([
-            new THREE.Vector2(0.5, 10),
-            new THREE.Vector2(0.5, -10),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(0.5, 5),
-            new THREE.Vector2(0.5, -5),
-        ]),
-        new THREE.Shape([
-            new THREE.Vector2(5, 0.5),
-            new THREE.Vector2(-5, 0.5),
-        ]),
+    layers: [
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0, 10),
+                    new THREE.Vector2(0, -10),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(0, 5),
+                    new THREE.Vector2(0, -5),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(5, 0),
+                    new THREE.Vector2(-5, 0),
+                ]),
+            ],
+            material: new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0.4, 9),
+                    new THREE.Vector2(0.4, -9),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(0.4, 4),
+                    new THREE.Vector2(0.4, -4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(4, 0.4),
+                    new THREE.Vector2(-4, 0.4),
+                ]),
+            ],
+            material: new THREE.MeshLambertMaterial({
+                color: 0x000e54,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(0.5, 10),
+                    new THREE.Vector2(0.5, -10),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(0.5, 5),
+                    new THREE.Vector2(0.5, -5),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(5, 0.5),
+                    new THREE.Vector2(-5, 0.5),
+                ]),
+            ],
+            material: new THREE.MeshStandardMaterial({
+                color: 0x99ccff,
+                wireframe: false
+            })
+        }
     ],
     extrudeOptions: {
         steps: 640,
         bevelEnabled: true,
     },
-    surfaceMaterial: new THREE.MeshLambertMaterial({
-        color: 0x000e54,
-        wireframe: false
-    }),
-    outlineMaterial: new THREE.MeshStandardMaterial({
-        color: 0x99ccff,
-        wireframe: false
-    }),
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
@@ -61180,7 +62719,296 @@ exports["default"] = track_y;
 
 
 /***/ }),
-/* 23 */
+/* 27 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
+let track_1 = {
+    startPoint: new THREE.Vector3(0, 0, 0),
+    startDirection: new THREE.Vector3(1, 0, 0).normalize(),
+    startRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+    curves: [
+        {
+            points: [
+                new THREE.Vector3(-50, 0, 0),
+                new THREE.Vector3(150, 0, 0),
+            ],
+            extrudeShapeIndex: 2
+        },
+        {
+            points: [
+                new THREE.Vector3(150, 0, 8),
+                new THREE.Vector3(200, 0, 8),
+                new THREE.Vector3(250, -10, 8),
+                new THREE.Vector3(300, 0, 8),
+                new THREE.Vector3(350, 10, 8),
+                new THREE.Vector3(400, 0, 8),
+                new THREE.Vector3(450, -10, 8),
+                new THREE.Vector3(500, 0, 8),
+                new THREE.Vector3(550, 0, 8),
+            ],
+            extrudeShapeIndex: 3
+        },
+        {
+            points: [
+                new THREE.Vector3(150, 0, -8),
+                new THREE.Vector3(200, 0, -8),
+                new THREE.Vector3(250, 10, -8),
+                new THREE.Vector3(300, 0, -8),
+                new THREE.Vector3(350, -10, -8),
+                new THREE.Vector3(400, 0, -8),
+                new THREE.Vector3(450, 10, -8),
+                new THREE.Vector3(500, 0, -8),
+                new THREE.Vector3(550, 0, -8),
+            ],
+            extrudeShapeIndex: 3
+        },
+        {
+            points: [
+                new THREE.Vector3(550, 0, 0),
+                new THREE.Vector3(600, 0, 0),
+                new THREE.Vector3(650, 4, 0),
+                new THREE.Vector3(675, 8, 50),
+                new THREE.Vector3(675, 8, 100),
+                new THREE.Vector3(650, 4, 150),
+                new THREE.Vector3(600, 0, 150),
+                new THREE.Vector3(550, 0, 150),
+            ],
+            extrudeShapeIndex: 2
+        },
+        {
+            points: [
+                new THREE.Vector3(550, 0, 150),
+                new THREE.Vector3(500, 0, 150),
+                new THREE.Vector3(450, 4, 150),
+                new THREE.Vector3(425, 8, 200),
+                new THREE.Vector3(425, 8, 250),
+                new THREE.Vector3(450, 4, 300),
+                new THREE.Vector3(500, 0, 300),
+                new THREE.Vector3(550, 0, 300),
+            ],
+            extrudeShapeIndex: 0
+        },
+        {
+            points: [
+                new THREE.Vector3(550, 0, 300),
+                new THREE.Vector3(600, 0, 300),
+                new THREE.Vector3(650, 4, 300),
+                new THREE.Vector3(675, 8, 350),
+                new THREE.Vector3(675, 8, 400),
+                new THREE.Vector3(650, 4, 450),
+                new THREE.Vector3(600, 0, 450),
+                new THREE.Vector3(550, 0, 450),
+            ],
+            extrudeShapeIndex: 2
+        },
+        {
+            points: [
+                new THREE.Vector3(550, 0, 450),
+                new THREE.Vector3(450, 0, 450),
+            ],
+            extrudeShapeIndex: 0
+        },
+        ...Array(10).fill(0).map((_, i) => {
+            return {
+                points: [
+                    new THREE.Vector3(450 - i * 20, 0, 450),
+                    new THREE.Vector3(450 - (i + 1) * 20, 0, 450),
+                ],
+                extrudeShapeIndex: 0,
+                moving: true,
+                direction: new THREE.Vector3(0, 0, 10),
+                period: 6000,
+                phase: i * 1200
+            };
+        }),
+        {
+            points: [
+                new THREE.Vector3(250, 0, 450),
+                new THREE.Vector3(200, 0, 450),
+            ],
+            extrudeShapeIndex: 0
+        },
+        {
+            points: [
+                new THREE.Vector3(200, 0, 458),
+                new THREE.Vector3(170, 2, 458),
+                new THREE.Vector3(140, 8, 300),
+                new THREE.Vector3(100, 8, 270),
+                new THREE.Vector3(70, 8, 270),
+                new THREE.Vector3(30, 8, 300),
+                new THREE.Vector3(0, 2, 458),
+                new THREE.Vector3(-30, 0, 458),
+            ],
+            extrudeShapeIndex: 1
+        },
+        {
+            points: [
+                new THREE.Vector3(200, 0, 442),
+                new THREE.Vector3(170, -2, 442),
+                new THREE.Vector3(140, -8, 600),
+                new THREE.Vector3(100, -8, 630),
+                new THREE.Vector3(70, -8, 630),
+                new THREE.Vector3(30, -8, 600),
+                new THREE.Vector3(0, -2, 442),
+                new THREE.Vector3(-30, 0, 442),
+            ],
+            extrudeShapeIndex: 1
+        },
+        {
+            points: [
+                new THREE.Vector3(-30, 0, 450),
+                new THREE.Vector3(-50, 0, 450),
+                new THREE.Vector3(-70, 0, 450),
+                new THREE.Vector3(-100, 0, 450),
+                new THREE.Vector3(-150, 0, 375),
+                new THREE.Vector3(-180, 0, 250),
+                new THREE.Vector3(-180, 0, 200),
+                new THREE.Vector3(-150, 0, 75),
+                new THREE.Vector3(-100, 0, 0),
+                new THREE.Vector3(-70, 0, 0),
+                new THREE.Vector3(-70, 0, 0),
+                new THREE.Vector3(-50, 0, 0),
+            ],
+            extrudeShapeIndex: 0
+        },
+    ],
+    layers: [
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(16, 0),
+                    new THREE.Vector2(-16, 0),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(8, 0),
+                    new THREE.Vector2(-8, 0),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(16, 0),
+                    new THREE.Vector2(-16, 0),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(8, 0),
+                    new THREE.Vector2(-8, 0),
+                ]),
+            ],
+            material: new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(15, 0.4),
+                    new THREE.Vector2(16, 0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(7, 0.4),
+                    new THREE.Vector2(8, 0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(15, -0.4),
+                    new THREE.Vector2(16, -0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(7, -0.4),
+                    new THREE.Vector2(8, -0.4),
+                ]),
+            ],
+            material: new THREE.MeshLambertMaterial({
+                color: 0xdddddd,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(-15, 0.4),
+                    new THREE.Vector2(-16, 0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(-7, 0.4),
+                    new THREE.Vector2(-8, 0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(-15, -0.4),
+                    new THREE.Vector2(-16, -0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(-7, -0.4),
+                    new THREE.Vector2(-8, -0.4),
+                ]),
+            ],
+            material: new THREE.MeshStandardMaterial({
+                color: 0xdddddd,
+                wireframe: false
+            })
+        },
+        {
+            shapes: [
+                new THREE.Shape([
+                    new THREE.Vector2(15, 0.4),
+                    new THREE.Vector2(-15, 0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(7, 0.4),
+                    new THREE.Vector2(-7, 0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(15, -0.4),
+                    new THREE.Vector2(-15, -0.4),
+                ]),
+                new THREE.Shape([
+                    new THREE.Vector2(7, -0.4),
+                    new THREE.Vector2(-7, -0.4),
+                ]),
+            ],
+            material: new THREE.MeshLambertMaterial({
+                color: 0xaaaaaa,
+                wireframe: false,
+                transparent: true,
+                opacity: 0.9
+            })
+        }
+    ],
+    extrudeOptions: {
+        steps: 640,
+        bevelEnabled: true,
+    },
+    backgroundColors: ["#000226"],
+};
+exports["default"] = track_1;
+
+
+/***/ }),
+/* 28 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -61189,14 +63017,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.mustang = exports.bike = void 0;
-var bike_1 = __webpack_require__(24);
+var bike_1 = __webpack_require__(29);
 Object.defineProperty(exports, "bike", ({ enumerable: true, get: function () { return __importDefault(bike_1).default; } }));
-var mustang_1 = __webpack_require__(25);
+var mustang_1 = __webpack_require__(30);
 Object.defineProperty(exports, "mustang", ({ enumerable: true, get: function () { return __importDefault(mustang_1).default; } }));
 
 
 /***/ }),
-/* 24 */
+/* 29 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -61216,7 +63044,7 @@ exports["default"] = bike;
 
 
 /***/ }),
-/* 25 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
