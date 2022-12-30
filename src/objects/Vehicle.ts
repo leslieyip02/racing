@@ -4,7 +4,7 @@ import { IControls, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-let defaultGravity = new THREE.Vector3(0, -0.008, 0);
+let defaultGravity = new THREE.Vector3(0, -0.002, 0);
 
 export default class Vehicle {
     camera: THREE.PerspectiveCamera;
@@ -155,7 +155,6 @@ export default class Vehicle {
     
                     this.rotation.x = angle;
                 }
-
 
                 if (this.normalDebug)
                     this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
