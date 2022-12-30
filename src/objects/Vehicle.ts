@@ -144,10 +144,14 @@ export default class Vehicle {
                 // stop model from flipping when it clips below the track 
                 // and surfaceNormal points downwards
                 if (surfaceNormal.y >= 0) {
+                    // get component of surface normal along the vehicle's direction
+                    let p = this.hitbox.up.clone().cross(this.direction.clone());
+                    let v = surfaceNormal.clone().projectOnPlane(p);
+                    let angle = v.angleTo(this.hitbox.up)
+
                     // if normal vector · direction vector is negative,
                     // they are facing in opposite directions,
                     // so the vehicle is moving up a slope
-                    let angle = surfaceNormal.clone().angleTo(this.hitbox.up);
                     let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
     
                     if (up)
