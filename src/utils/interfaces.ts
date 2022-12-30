@@ -7,13 +7,20 @@ interface IControls {
 // the extrude shapes may need to change depending on 
 // the orientation of the curve
 interface ICurveData {
-    points: Array<THREE.Vector3>;
+    points: Array<[x: number, y: number, z: number]>;
     extrudeShapeIndex: number
+    extrudeOptions?: THREE.ExtrudeGeometryOptions;
     closed?: boolean;
     moving?: boolean;
     direction?: THREE.Vector3;
     period?: number;
     phase?: number;
+}
+
+// the track is rendered in multiple layers
+interface ILayerData {
+    shapes: Array<Array<[x: number, y: number]>>;
+    material: THREE.Material;
 }
 
 // data for platform movement
@@ -25,19 +32,12 @@ interface IPlatformData {
     phase: number;
 }
 
-// the track is rendered in multiple layers
-interface ILayerData {
-    shapes: Array<THREE.Shape>;
-    material: THREE.Material;
-}
-
 interface ITrackData {
     startPoint: THREE.Vector3;
     startDirection: THREE.Vector3;
     startRotation: THREE.Euler;
     curves: Array<ICurveData>;
     layers: Array<ILayerData>;
-    extrudeOptions: THREE.ExtrudeGeometryOptions;
     backgroundColors: Array<string>;
     gridColor?: number | THREE.Color;
 }
@@ -59,6 +59,7 @@ interface IVehicleData {
 export {
     IControls,
     ICurveData,
+    ILayerData,
     IPlatformData,
     ITrackData,
     IVehicleData

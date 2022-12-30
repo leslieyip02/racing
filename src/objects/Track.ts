@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { ICurveData, ITrackData, IPlatformData } from "../utils/interfaces";
+import { toVectorArray, toShapeArray } from "../utils/functions";
+import { ICurveData, ILayerData, IPlatformData, ITrackData } from "../utils/interfaces";
 import { debugAxes, debugPoints, debugLine } from "../utils/debug";
 
 export default class Track {    
@@ -38,6 +39,7 @@ export default class Track {
             debugLine(scene, points);
 
         extrudeOptions.extrudePath = curve;
+
         let geometry = new THREE.ExtrudeGeometry(extrudeShape, extrudeOptions);
         let mesh = new THREE.Mesh(geometry, material);
 
@@ -45,16 +47,23 @@ export default class Track {
     }
 
     // combines curves into a single mesh
-    createTrack(curves: Array<ICurveData>, extrudeShapes: Array<THREE.Shape>,
-        extrudeOptions: THREE.ExtrudeGeometryOptions, material: THREE.Material,
+    createTrack(curves: Array<ICurveData>, layer: ILayerData,
         debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
         
         let meshes: Array<THREE.Mesh> = [];
-        for (let curve of curves) {
-            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
 
-            let mesh = this.createCurve(curve.points, curve.closed || false,
-                extrudeShape, extrudeOptions, material, debug, scene);
+        let extrudeShapes = toShapeArray(layer.shapes);
+        let defaultExtrudeOptions = { steps: 100, bevelEnabled: true };
+
+        for (let curve of curves) {
+            let points = toVectorArray(curve.points);
+            let closed = curve.closed || false;
+            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
+            let extrudeOptions = curve.extrudeOptions || defaultExtrudeOptions;
+            let material = layer.material;
+
+            let mesh = this.createCurve(points, closed, extrudeShape, 
+                extrudeOptions, material, debug, scene);
             
             if (curve.moving) {
                 let platform: IPlatformData = {
@@ -100,16 +109,14 @@ export default class Track {
         // make collision layer invisible and above the road
         let collisionLayer = trackData.layers.shift();
         this.body = this.createTrack(trackData.curves, 
-            collisionLayer.shapes, trackData.extrudeOptions, 
-            collisionLayer.material, debug, scene);
+            collisionLayer, debug, scene);
         scene.add(this.body);
         
         // add all layers
         // e.g. surface layer and outline layer
         for (let layerData of trackData.layers) {
             let layer = this.createTrack(trackData.curves,
-                layerData.shapes, trackData.extrudeOptions,
-                layerData.material, debug, scene);
+                layerData, debug, scene);
             scene.add(layer);
         }
 

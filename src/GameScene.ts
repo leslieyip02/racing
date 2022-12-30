@@ -125,9 +125,11 @@ export default class GameScene extends THREE.Scene {
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
 
-        this.track = new Track(this, tracks[0], debug);
+        let trackData = testTracks[0];
+        this.track = new Track(this, trackData, debug);
 
-        this.setupBackgroundEntities();
+        if (!trackData.gridColor)
+            this.setupBackgroundEntities();
 
         let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, debug);
@@ -240,8 +242,9 @@ export default class GameScene extends THREE.Scene {
         for (let vehicle of this.vehicles)
             vehicle.update(this.keysPressed, this.track, dt);
 
-        for (let satellite of this.satellites)
-            satellite.update(dt);
+        if (this.satellites)
+            for (let satellite of this.satellites)
+                satellite.update(dt);
 
         this.track.update(dt);
     }
