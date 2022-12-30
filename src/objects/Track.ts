@@ -47,8 +47,8 @@ export default class Track {
     }
 
     // creates an elliptical curve
-    createEllipse(origin: THREE.Vector3, xRadius: number, yRadius: number,
-        startAngle: number, endAngle: number, clockwise: boolean, division: number,
+    createEllipse(origin: THREE.Vector3, radius: [x: number, y: number],
+        angles: [start: number, end: number], clockwise: boolean, division: number,
         extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
         material: THREE.Material, debug?: boolean, scene?: THREE.Scene) {
         
@@ -56,13 +56,13 @@ export default class Track {
             debugPoints(scene, [origin]);
         
         // ellipse is created in 2d
-        let ellipse = new THREE.EllipseCurve(origin.x, origin.y, xRadius, yRadius,
-            startAngle, endAngle, clockwise, 0);
+        let ellipse = new THREE.EllipseCurve(origin.x, origin.z, 
+            radius[0], radius[1], angles[0], angles[1], clockwise, 0);
         
         // make curve 3d for extrusion
         let curve = new THREE.CurvePath<THREE.Vector3>();
         let points = ellipse.getPoints(division).map(point => 
-            new THREE.Vector3(point.x, origin.z, point.y));
+            new THREE.Vector3(point.x, origin.y, point.y));
 
         if (debug && scene)
             debugLine(scene, points);
@@ -99,8 +99,8 @@ export default class Track {
             if (curve.ellipse) {
                 let divisions = curve.divisions || 100;
 
-                mesh = this.createEllipse(points[0], curve.xRadius, curve.yRadius, 
-                    curve.startAngle, curve.endAngle, curve.clockwise, divisions, 
+                mesh = this.createEllipse(points[0], curve.radius, 
+                    curve.angles, curve.clockwise, divisions, 
                     extrudeShape, extrudeOptions, material, debug, scene);
             } else {
                 mesh = this.createCatmullRom(points, closed, extrudeShape, 

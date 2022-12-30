@@ -11,10 +11,8 @@ interface ICurveData {
     closed?: boolean;
     
     ellipse?: boolean;
-    xRadius?: number;
-    yRadius?: number;
-    startAngle?: number;
-    endAngle?: number;
+    radius?: [x: number, y: number];
+    angles?: [start: number, end: number]
     clockwise?: boolean;
     divisions?: number
 

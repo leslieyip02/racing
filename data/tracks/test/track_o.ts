@@ -10,10 +10,8 @@ let track_o: ITrackData = {
             points: [[0, 1, 0]],
             extrudeShapeIndex: 0,
             ellipse: true,
-            xRadius: 20,
-            yRadius: 20,
-            startAngle: 0,
-            endAngle: 2 * Math.PI
+            radius: [50, 50],
+            angles: [0, 2 * Math.PI]
         },
     ],
     layers: [
