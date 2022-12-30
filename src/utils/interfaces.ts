@@ -31,8 +31,8 @@ interface ILayerData {
     material: THREE.Material;
 }
 
-// data for platform movement
-interface IPlatformData {
+// for moving platforms
+interface IPlatform {
     mesh: THREE.Mesh;
     origin: THREE.Vector3;
     direction: THREE.Vector3;
@@ -40,12 +40,27 @@ interface IPlatformData {
     phase: number;
 }
 
+interface ICheckpointData {
+    position: THREE.Vector3;
+    resetDirection: THREE.Vector3;
+    resetRotation: THREE.Euler;
+    width?: number;
+    height?: number;
+}
+
+interface ICheckpoint {
+    mesh: THREE.Mesh;
+    resetDirection: THREE.Vector3;
+    resetRotation: THREE.Euler;
+}
+
 interface ITrackData {
     startPoint: THREE.Vector3;
     startDirection: THREE.Vector3;
     startRotation: THREE.Euler;
-    curves: Array<ICurveData>;
-    layers: Array<ILayerData>;
+    curveData: Array<ICurveData>;
+    layerData: Array<ILayerData>;
+    checkpoints: Array<ICheckpointData>;
     backgroundColors: Array<string>;
     gridColor?: number | THREE.Color;
 }
@@ -68,7 +83,9 @@ export {
     IControls,
     ICurveData,
     ILayerData,
-    IPlatformData,
+    IPlatform,
+    ICheckpointData,
+    ICheckpoint,
     ITrackData,
     IVehicleData
 }

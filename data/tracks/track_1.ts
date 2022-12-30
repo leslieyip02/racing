@@ -3,9 +3,9 @@ import { ITrackData } from "../../src/utils/interfaces";
 
 let track_1: ITrackData = {
     startPoint: new THREE.Vector3(0, 0, 0),
-    startDirection: new THREE.Vector3(1, 0, 0).normalize(),
+    startDirection: new THREE.Vector3(1, 0, 0),
     startRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
-    curves: [
+    curveData: [
         {
             points: [[-100, 0, 0], [150, 0, 0]],
             extrudeShapeIndex: 0
@@ -27,7 +27,7 @@ let track_1: ITrackData = {
             extrudeShapeIndex: 2,
             ellipse: true,
             radius: [50, 50],
-            angles: [1.5 * Math.PI, 0]
+            angles: [3 * Math.PI / 2, 0]
         },
         {
             points: [[600, 0, 50], [600, 0, 100], [550, 8, 200], [480, 8, 220], [400, -16, 200], 
@@ -53,14 +53,14 @@ let track_1: ITrackData = {
             extrudeShapeIndex: 2,
             ellipse: true,
             radius: [75, 75],
-            angles: [0.5 * Math.PI, 1.5 * Math.PI]
+            angles: [Math.PI / 2, 3 * Math.PI / 2]
         },
         {
             points: [[-400, 24, 0], [-320, 24, 0], [-240, 16, 0], [-160, 32, 0]],
             extrudeShapeIndex: 0
         }
     ],
-    layers: [
+    layerData: [
         {
             shapes: [[[16, 0], [-16, 0]], [[8, 0], [-8, 0]],
                 [[0, 16], [0, -16]], [[0, 8], [0, -8]], [[16, 0], [-16, 0]]],
@@ -80,6 +80,33 @@ let track_1: ITrackData = {
             shapes: [[[15, -0.4], [-15, -0.4]], [[7, -0.4], [-7, -0.4]],
                 [[0.4, 15], [0.4, -15]], [[0.4, 7], [0.4, -7]], [[15, 0.4], [-15, 0.4]]],
             material: new THREE.MeshLambertMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.3 })
+        }
+    ],
+    checkpoints: [
+        {
+            position: new THREE.Vector3(50, 0, 0),
+            resetDirection: new THREE.Vector3(1, 0, 0),
+            resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(550, 0, 0),
+            resetDirection: new THREE.Vector3(1, 0, 0),
+            resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(280, -24, 0),
+            resetDirection: new THREE.Vector3(-1, 0, -1).normalize(),
+            resetRotation: new THREE.Euler(0, 5 * Math.PI / 4, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(-150, 24, -150),
+            resetDirection: new THREE.Vector3(-1, 0, 0).normalize(),
+            resetRotation: new THREE.Euler(0, -Math.PI / 2, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(-320, 24, 0),
+            resetDirection: new THREE.Vector3(1, 0, 0).normalize(),
+            resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
         }
     ],
     backgroundColors: ["#000226"],

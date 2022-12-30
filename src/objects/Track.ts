@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { toVectorArray, toShapeArray } from "../utils/functions";
-import { ICurveData, ILayerData, IPlatformData, ITrackData } from "../utils/interfaces";
+import { ICurveData, ILayerData, IPlatform, ICheckpointData, ICheckpoint, ITrackData } from "../utils/interfaces";
 import { debugAxes, debugPoints, debugLine } from "../utils/debug";
 
 export default class Track {    
@@ -9,19 +9,52 @@ export default class Track {
     startRotation: THREE.Euler;
 
     body: THREE.Mesh;
-    movingPlatforms: Array<IPlatformData>;
+    checkpoints: Array<ICheckpoint>;
+    movingPlatforms: Array<IPlatform>;
     elapsedTime: number;
 
-    constructor(scene: THREE.Scene, trackData: ITrackData,
-        debug?: boolean) {
-
+    constructor(scene: THREE.Scene, trackData: ITrackData, debug?: boolean) {
         this.startPoint = trackData.startPoint;
         this.startDirection = trackData.startDirection;
         this.startRotation = trackData.startRotation;
-        
+
         this.elapsedTime = 0;
 
+        this.createCheckpoints(trackData.checkpoints, scene, debug);
         this.render(scene, trackData, debug);
+    }
+
+    createCheckpoints(checkpointData: Array<ICheckpointData>, 
+        scene: THREE.Scene, debug?: boolean) {
+        
+        this.checkpoints = [];
+
+        let material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            wireframe: true,
+            transparent: !debug,
+            opacity: 0
+        });
+
+        for (let data of checkpointData) {
+            let width = data.width || 48;
+            let height = data.height || 8;
+
+            let geometry = new THREE.PlaneGeometry(width, height);
+            let mesh = new THREE.Mesh(geometry, material);
+            
+            mesh.position.set(data.position.x, data.position.y, data.position.z);
+            mesh.setRotationFromEuler(data.resetRotation);
+            scene.add(mesh);
+            
+            let checkpoint: ICheckpoint = {
+                mesh: mesh,
+                resetDirection: data.resetDirection,
+                resetRotation: data.resetRotation
+            }
+
+            this.checkpoints.push(checkpoint);
+        }
     }
 
     // creates a catmull-rom spline
@@ -50,7 +83,7 @@ export default class Track {
     createEllipse(origin: THREE.Vector3, radius: [x: number, y: number],
         angles: [start: number, end: number], clockwise: boolean, division: number,
         extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
-        material: THREE.Material, debug?: boolean, scene?: THREE.Scene) {
+        material: THREE.Material, debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
         
         if (debug && scene) 
             debugPoints(scene, [origin]);
@@ -79,7 +112,7 @@ export default class Track {
     }
 
     // combines curves into a single mesh
-    createTrack(curves: Array<ICurveData>, layer: ILayerData,
+    createTrack(curveData: Array<ICurveData>, layer: ILayerData,
         debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
         
         let meshes: Array<THREE.Mesh> = [];
@@ -87,33 +120,33 @@ export default class Track {
         let extrudeShapes = toShapeArray(layer.shapes);
         let defaultExtrudeOptions = { steps: 100, bevelEnabled: true };
 
-        for (let curve of curves) {
+        for (let data of curveData) {
             let mesh: THREE.Mesh;
 
-            let points = toVectorArray(curve.points);
-            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
-            let extrudeOptions = curve.extrudeOptions || defaultExtrudeOptions;
+            let points = toVectorArray(data.points);
+            let extrudeShape = extrudeShapes[data.extrudeShapeIndex];
+            let extrudeOptions = data.extrudeOptions || defaultExtrudeOptions;
             let material = layer.material;
-            let closed = curve.closed || false;
+            let closed = data.closed || false;
 
-            if (curve.ellipse) {
-                let divisions = curve.divisions || 100;
+            if (data.ellipse) {
+                let divisions = data.divisions || 100;
 
-                mesh = this.createEllipse(points[0], curve.radius, 
-                    curve.angles, curve.clockwise, divisions, 
+                mesh = this.createEllipse(points[0], data.radius, 
+                    data.angles, data.clockwise, divisions, 
                     extrudeShape, extrudeOptions, material, debug, scene);
             } else {
                 mesh = this.createCatmullRom(points, closed, extrudeShape, 
                     extrudeOptions, material, debug, scene);
             }
             
-            if (curve.moving) {
-                let platform: IPlatformData = {
+            if (data.moving) {
+                let platform: IPlatform = {
                     mesh: mesh,
                     origin: mesh.position.clone(),
-                    direction: curve.direction,
-                    period: curve.period,
-                    phase: curve.phase
+                    direction: data.direction,
+                    period: data.period,
+                    phase: data.phase
                 }
 
                 this.movingPlatforms.push(platform);
@@ -149,15 +182,15 @@ export default class Track {
         this.movingPlatforms = [];
         
         // make collision layer invisible and above the road
-        let collisionLayer = trackData.layers.shift();
-        this.body = this.createTrack(trackData.curves, 
+        let collisionLayer = trackData.layerData.shift();
+        this.body = this.createTrack(trackData.curveData, 
             collisionLayer, debug, scene);
         scene.add(this.body);
         
         // add all layers
         // e.g. surface layer and outline layer
-        for (let layerData of trackData.layers) {
-            let layer = this.createTrack(trackData.curves,
+        for (let layerData of trackData.layerData) {
+            let layer = this.createTrack(trackData.curveData,
                 layerData, debug, scene);
             scene.add(layer);
         }

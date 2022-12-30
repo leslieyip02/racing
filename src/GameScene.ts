@@ -114,7 +114,8 @@ export default class GameScene extends THREE.Scene {
         this.renderer.setSize(this.width, this.height);
 
         // set up camera orbital controls
-        this.orbitals = new OrbitControls(this.camera, this.renderer.domElement);
+        if (debug)
+            this.orbitals = new OrbitControls(this.camera, this.renderer.domElement);
 
         // set up glowing postprocessing
         this.composer = new EffectComposer(this.renderer);
@@ -141,7 +142,7 @@ export default class GameScene extends THREE.Scene {
 
         if (debug) {
             // set up debugger
-            this.debugger =  new GUI();
+            this.debugger = new GUI();
     
             const cameraGroup = this.debugger.addFolder("Camera");
             cameraGroup.add(this.camera, "fov", 0, 120);

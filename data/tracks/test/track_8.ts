@@ -5,7 +5,7 @@ let track_8: ITrackData = {
     startPoint: new THREE.Vector3(0, 1, 0),
     startDirection: new THREE.Vector3(1, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, Math.PI / 4, 0, "YZX"),
-    curves: [
+    curveData: [
         {
             points: [[0, 1, 0], [100, 1, 100], [100, 1, 200], [50, 1, 300], 
                 [-50, 1, 300], [-100, 1, 200], [-100, 1, 100], [-75, 1, 75]],
@@ -21,7 +21,7 @@ let track_8: ITrackData = {
             extrudeShapeIndex: 0
         }
     ],
-    layers: [
+    layerData: [
         {
             shapes: [[[0, 5], [0, -5]]],
             material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
@@ -35,6 +35,7 @@ let track_8: ITrackData = {
             material: new THREE.MeshStandardMaterial({ color: 0x99ccff })
         }
     ],
+    checkpoints: [],
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 }
