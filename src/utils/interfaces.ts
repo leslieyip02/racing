@@ -8,9 +8,19 @@ interface IControls {
 // the orientation of the curve
 interface ICurveData {
     points: Array<[x: number, y: number, z: number]>;
+    closed?: boolean;
+    
+    ellipse?: boolean;
+    xRadius?: number;
+    yRadius?: number;
+    startAngle?: number;
+    endAngle?: number;
+    clockwise?: boolean;
+    divisions?: number
+
     extrudeShapeIndex: number
     extrudeOptions?: THREE.ExtrudeGeometryOptions;
-    closed?: boolean;
+
     moving?: boolean;
     direction?: THREE.Vector3;
     period?: number;

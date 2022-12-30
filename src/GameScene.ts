@@ -125,7 +125,7 @@ export default class GameScene extends THREE.Scene {
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
 
-        let trackData = testTracks[0];
+        let trackData = testTracks[2];
         this.track = new Track(this, trackData, debug);
 
         if (!trackData.gridColor)

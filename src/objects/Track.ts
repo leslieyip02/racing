@@ -25,7 +25,7 @@ export default class Track {
     }
 
     // creates a catmull-rom spline
-    createCurve(points: Array<THREE.Vector3>, closed: boolean,
+    createCatmullRom(points: Array<THREE.Vector3>, closed: boolean,
         extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
         material: THREE.Material, debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
 
@@ -46,6 +46,38 @@ export default class Track {
         return mesh;
     }
 
+    // creates an elliptical curve
+    createEllipse(origin: THREE.Vector3, xRadius: number, yRadius: number,
+        startAngle: number, endAngle: number, clockwise: boolean, division: number,
+        extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
+        material: THREE.Material, debug?: boolean, scene?: THREE.Scene) {
+        
+        if (debug && scene) 
+            debugPoints(scene, [origin]);
+        
+        // ellipse is created in 2d
+        let ellipse = new THREE.EllipseCurve(origin.x, origin.y, xRadius, yRadius,
+            startAngle, endAngle, clockwise, 0);
+        
+        // make curve 3d for extrusion
+        let curve = new THREE.CurvePath<THREE.Vector3>();
+        let points = ellipse.getPoints(division).map(point => 
+            new THREE.Vector3(point.x, origin.z, point.y));
+
+        if (debug && scene)
+            debugLine(scene, points);
+
+        for (let i = 0; i < division; i++)
+            curve.add(new THREE.LineCurve3(points[i], points[i + 1]));
+
+        extrudeOptions.extrudePath = curve;
+
+        let geometry = new THREE.ExtrudeGeometry(extrudeShape, extrudeOptions);
+        let mesh = new THREE.Mesh(geometry, material);
+
+        return mesh;
+    }
+
     // combines curves into a single mesh
     createTrack(curves: Array<ICurveData>, layer: ILayerData,
         debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
@@ -56,14 +88,24 @@ export default class Track {
         let defaultExtrudeOptions = { steps: 100, bevelEnabled: true };
 
         for (let curve of curves) {
+            let mesh: THREE.Mesh;
+
             let points = toVectorArray(curve.points);
-            let closed = curve.closed || false;
             let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
             let extrudeOptions = curve.extrudeOptions || defaultExtrudeOptions;
             let material = layer.material;
+            let closed = curve.closed || false;
 
-            let mesh = this.createCurve(points, closed, extrudeShape, 
-                extrudeOptions, material, debug, scene);
+            if (curve.ellipse) {
+                let divisions = curve.divisions || 100;
+
+                mesh = this.createEllipse(points[0], curve.xRadius, curve.yRadius, 
+                    curve.startAngle, curve.endAngle, curve.clockwise, divisions, 
+                    extrudeShape, extrudeOptions, material, debug, scene);
+            } else {
+                mesh = this.createCatmullRom(points, closed, extrudeShape, 
+                    extrudeOptions, material, debug, scene);
+            }
             
             if (curve.moving) {
                 let platform: IPlatformData = {
