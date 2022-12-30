@@ -66,9 +66,9 @@ const EffectComposer_1 = __webpack_require__(7);
 const UnrealBloomPass_1 = __webpack_require__(11);
 const ConvexGeometry_1 = __webpack_require__(13);
 const objects_1 = __webpack_require__(15);
-const functions_1 = __webpack_require__(21);
+const functions_1 = __webpack_require__(18);
 const tracks_1 = __webpack_require__(22);
-const vehicles_1 = __webpack_require__(28);
+const vehicles_1 = __webpack_require__(29);
 class GameScene extends THREE.Scene {
     constructor(debug) {
         super();
@@ -135,7 +135,8 @@ class GameScene extends THREE.Scene {
         });
         this.renderer.setSize(this.width, this.height);
         // set up camera orbital controls
-        this.orbitals = new OrbitControls_1.OrbitControls(this.camera, this.renderer.domElement);
+        if (debug)
+            this.orbitals = new OrbitControls_1.OrbitControls(this.camera, this.renderer.domElement);
         // set up glowing postprocessing
         this.composer = new EffectComposer_1.EffectComposer(this.renderer);
         this.composer.addPass(new RenderPass_1.RenderPass(this, this.camera));
@@ -143,8 +144,10 @@ class GameScene extends THREE.Scene {
         this.composer.addPass(this.filter);
         // set objects in the scene
         this.add(new THREE.AmbientLight(0xffffff));
-        this.track = new objects_1.Track(this, tracks_1.tracks[0], debug);
-        this.setupBackgroundEntities();
+        let trackData = tracks_1.tracks[0];
+        this.track = new objects_1.Track(this, trackData, debug);
+        if (!trackData.gridColor)
+            this.setupBackgroundEntities();
         let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.bike, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
         // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
         //     this.track.startDirection, this.track.startRotation, debug);
@@ -229,8 +232,9 @@ class GameScene extends THREE.Scene {
     update(dt) {
         for (let vehicle of this.vehicles)
             vehicle.update(this.keysPressed, this.track, dt);
-        for (let satellite of this.satellites)
-            satellite.update(dt);
+        if (this.satellites)
+            for (let satellite of this.satellites)
+                satellite.update(dt);
         this.track.update(dt);
     }
 }
@@ -57251,7 +57255,7 @@ var Satellite_1 = __webpack_require__(16);
 Object.defineProperty(exports, "Satellite", ({ enumerable: true, get: function () { return __importDefault(Satellite_1).default; } }));
 var Track_1 = __webpack_require__(17);
 Object.defineProperty(exports, "Track", ({ enumerable: true, get: function () { return __importDefault(Track_1).default; } }));
-var Vehicle_1 = __webpack_require__(19);
+var Vehicle_1 = __webpack_require__(20);
 Object.defineProperty(exports, "Vehicle", ({ enumerable: true, get: function () { return __importDefault(Vehicle_1).default; } }));
 
 
@@ -57340,17 +57344,43 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-const debug_1 = __webpack_require__(18);
+const functions_1 = __webpack_require__(18);
+const debug_1 = __webpack_require__(19);
 class Track {
     constructor(scene, trackData, debug) {
         this.startPoint = trackData.startPoint;
         this.startDirection = trackData.startDirection;
         this.startRotation = trackData.startRotation;
         this.elapsedTime = 0;
+        this.createCheckpoints(trackData.checkpoints, scene, debug);
         this.render(scene, trackData, debug);
     }
+    createCheckpoints(checkpointData, scene, debug) {
+        this.checkpoints = [];
+        let material = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            wireframe: true,
+            transparent: !debug,
+            opacity: 0
+        });
+        for (let data of checkpointData) {
+            let width = data.width || 48;
+            let height = data.height || 8;
+            let geometry = new THREE.PlaneGeometry(width, height);
+            let mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(data.position.x, data.position.y, data.position.z);
+            mesh.setRotationFromEuler(data.resetRotation);
+            scene.add(mesh);
+            let checkpoint = {
+                mesh: mesh,
+                resetDirection: data.resetDirection,
+                resetRotation: data.resetRotation
+            };
+            this.checkpoints.push(checkpoint);
+        }
+    }
     // creates a catmull-rom spline
-    createCurve(points, closed, extrudeShape, extrudeOptions, material, debug, scene) {
+    createCatmullRom(points, closed, extrudeShape, extrudeOptions, material, debug, scene) {
         if (debug && scene)
             (0, debug_1.debugPoints)(scene, points);
         let curve = new THREE.CatmullRomCurve3(points, closed);
@@ -57362,19 +57392,50 @@ class Track {
         let mesh = new THREE.Mesh(geometry, material);
         return mesh;
     }
+    // creates an elliptical curve
+    createEllipse(origin, radius, angles, clockwise, division, extrudeShape, extrudeOptions, material, debug, scene) {
+        if (debug && scene)
+            (0, debug_1.debugPoints)(scene, [origin]);
+        // ellipse is created in 2d
+        let ellipse = new THREE.EllipseCurve(origin.x, origin.z, radius[0], radius[1], angles[0], angles[1], clockwise, 0);
+        // make curve 3d for extrusion
+        let curve = new THREE.CurvePath();
+        let points = ellipse.getPoints(division).map(point => new THREE.Vector3(point.x, origin.y, point.y));
+        if (debug && scene)
+            (0, debug_1.debugLine)(scene, points);
+        for (let i = 0; i < division; i++)
+            curve.add(new THREE.LineCurve3(points[i], points[i + 1]));
+        extrudeOptions.extrudePath = curve;
+        let geometry = new THREE.ExtrudeGeometry(extrudeShape, extrudeOptions);
+        let mesh = new THREE.Mesh(geometry, material);
+        return mesh;
+    }
     // combines curves into a single mesh
-    createTrack(curves, extrudeShapes, extrudeOptions, material, debug, scene) {
+    createTrack(curveData, layer, debug, scene) {
         let meshes = [];
-        for (let curve of curves) {
-            let extrudeShape = extrudeShapes[curve.extrudeShapeIndex];
-            let mesh = this.createCurve(curve.points, curve.closed || false, extrudeShape, extrudeOptions, material, debug, scene);
-            if (curve.moving) {
+        let extrudeShapes = (0, functions_1.toShapeArray)(layer.shapes);
+        let defaultExtrudeOptions = { steps: 100, bevelEnabled: true };
+        for (let data of curveData) {
+            let mesh;
+            let points = (0, functions_1.toVectorArray)(data.points);
+            let extrudeShape = extrudeShapes[data.extrudeShapeIndex];
+            let extrudeOptions = data.extrudeOptions || defaultExtrudeOptions;
+            let material = layer.material;
+            let closed = data.closed || false;
+            if (data.ellipse) {
+                let divisions = data.divisions || 100;
+                mesh = this.createEllipse(points[0], data.radius, data.angles, data.clockwise, divisions, extrudeShape, extrudeOptions, material, debug, scene);
+            }
+            else {
+                mesh = this.createCatmullRom(points, closed, extrudeShape, extrudeOptions, material, debug, scene);
+            }
+            if (data.moving) {
                 let platform = {
                     mesh: mesh,
                     origin: mesh.position.clone(),
-                    direction: curve.direction,
-                    period: curve.period,
-                    phase: curve.phase
+                    direction: data.direction,
+                    period: data.period,
+                    phase: data.phase
                 };
                 this.movingPlatforms.push(platform);
             }
@@ -57402,13 +57463,13 @@ class Track {
         // set up platforms
         this.movingPlatforms = [];
         // make collision layer invisible and above the road
-        let collisionLayer = trackData.layers.shift();
-        this.body = this.createTrack(trackData.curves, collisionLayer.shapes, trackData.extrudeOptions, collisionLayer.material, debug, scene);
+        let collisionLayer = trackData.layerData.shift();
+        this.body = this.createTrack(trackData.curveData, collisionLayer, debug, scene);
         scene.add(this.body);
         // add all layers
         // e.g. surface layer and outline layer
-        for (let layerData of trackData.layers) {
-            let layer = this.createTrack(trackData.curves, layerData.shapes, trackData.extrudeOptions, layerData.material, debug, scene);
+        for (let layerData of trackData.layerData) {
+            let layer = this.createTrack(trackData.curveData, layerData, debug, scene);
             scene.add(layer);
         }
         for (let platform of this.movingPlatforms)
@@ -57435,6 +57496,51 @@ exports["default"] = Track;
 
 /***/ }),
 /* 18 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.randomVector = exports.toShapeArray = exports.toVectorArray = void 0;
+const THREE = __importStar(__webpack_require__(2));
+function toVectorArray(points) {
+    return points.map(point => new THREE.Vector3(point[0], point[1], point[2]));
+}
+exports.toVectorArray = toVectorArray;
+function toShapeArray(shapes) {
+    return shapes.map(shape => new THREE.Shape(shape.map(point => new THREE.Vector2(point[0], point[1]))));
+}
+exports.toShapeArray = toShapeArray;
+function randomVector() {
+    return new THREE.Vector3(Math.random() * (Math.random() < 0.5 ? 1 : -1), Math.random() * (Math.random() < 0.5 ? 1 : -1), Math.random() * (Math.random() < 0.5 ? 1 : -1));
+}
+exports.randomVector = randomVector;
+
+
+/***/ }),
+/* 19 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -57506,7 +57612,7 @@ exports.DebugVector = DebugVector;
 
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -57544,15 +57650,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-const debug_1 = __webpack_require__(18);
-const GLTFLoader_1 = __webpack_require__(20);
-let defaultGravity = new THREE.Vector3(0, -0.008, 0);
+const debug_1 = __webpack_require__(19);
+const GLTFLoader_1 = __webpack_require__(21);
+let defaultGravity = new THREE.Vector3(0, -0.004, 0);
 class Vehicle {
     constructor(scene, camera, vehicleData, position, direction, rotation, debug) {
         this.manualCamera = false;
         this.camera = camera;
         this.position = position;
-        this.lastCheckpoint = position;
         this.direction = direction;
         this.rotation = rotation;
         this.gravity = defaultGravity;
@@ -57616,6 +57721,8 @@ class Vehicle {
     }
     handleTrackCollision(track) {
         let currentPosition = this.position.clone();
+        let handledCollision = false;
+        let handledCheckpoint = false;
         // use raycasting to check for collison with track
         for (let i = 0; i < this.hitbox.geometry.attributes.position.count; i++) {
             let localVertex = new THREE.Vector3(this.hitbox.geometry.attributes.position.array[i * 3], this.hitbox.geometry.attributes.position.array[i * 3 + 1], this.hitbox.geometry.attributes.position.array[i * 3 + 2]);
@@ -57629,16 +57736,20 @@ class Vehicle {
             if (collisionResults.length > 0 &&
                 collisionResults[0].distance < directionVector.length()) {
                 let collision = collisionResults[0].point;
-                this.position.y = collision.y;
+                if (this.position.y < collision.y)
+                    this.position.y = collision.y;
                 let surfaceNormal = collisionResults[0].face.normal;
                 this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
                 // stop model from flipping when it clips below the track 
                 // and surfaceNormal points downwards
                 if (surfaceNormal.y >= 0) {
+                    // get component of surface normal along the vehicle's direction
+                    let p = this.hitbox.up.clone().cross(this.direction.clone());
+                    let v = surfaceNormal.clone().projectOnPlane(p);
+                    let angle = v.angleTo(this.hitbox.up);
                     // if normal vector · direction vector is negative,
                     // they are facing in opposite directions,
                     // so the vehicle is moving up a slope
-                    let angle = surfaceNormal.clone().angleTo(this.hitbox.up);
                     let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
                     if (up)
                         angle = 2 * Math.PI - angle;
@@ -57646,8 +57757,22 @@ class Vehicle {
                 }
                 if (this.normalDebug)
                     this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
-                return;
+                handledCollision = true;
             }
+            // use raycasting to handle collision with checkpoint planes too
+            if (!handledCheckpoint) {
+                for (let checkpoint of track.checkpoints) {
+                    let checkpointResult = ray.intersectObject(checkpoint.mesh);
+                    if (checkpointResult.length > 0 &&
+                        checkpointResult[0].distance < directionVector.length()) {
+                        this.checkpoint = checkpoint;
+                        handledCheckpoint = true;
+                        break;
+                    }
+                }
+            }
+            if (handledCollision && handledCheckpoint)
+                return;
         }
     }
     handleVehicleMovement(keysPressed, dt) {
@@ -57723,6 +57848,20 @@ class Vehicle {
         this.gravity = defaultGravity;
         this.handleTrackCollision(track);
         this.handleVehicleMovement(keysPressed, dt);
+        // reset vehicle to last checkpoint if it falls out of bounds
+        if (this.position.y < -30) {
+            if (!this.checkpoint) {
+                this.position = new THREE.Vector3(0, 0, 0);
+            }
+            else {
+                this.position = this.checkpoint.mesh.position.clone();
+                this.direction = this.checkpoint.resetDirection.clone();
+                this.rotation = this.checkpoint.resetRotation.clone();
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.model.setRotationFromEuler(this.rotation.clone());
+                this.hitbox.setRotationFromEuler(this.rotation.clone());
+            }
+        }
         if (!this.manualCamera) {
             let forward = !keysPressed["r"];
             this.handleCameraMovement(forward);
@@ -57733,7 +57872,7 @@ exports["default"] = Vehicle;
 
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -62082,43 +62221,6 @@ function toTrianglesDrawMode( geometry, drawMode ) {
 
 
 /***/ }),
-/* 21 */
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.randomVector = void 0;
-const THREE = __importStar(__webpack_require__(2));
-function randomVector() {
-    return new THREE.Vector3(Math.random() * (Math.random() < 0.5 ? 1 : -1), Math.random() * (Math.random() < 0.5 ? 1 : -1), Math.random() * (Math.random() < 0.5 ? 1 : -1));
-}
-exports.randomVector = randomVector;
-
-
-/***/ }),
 /* 22 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -62130,10 +62232,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.tracks = exports.testTracks = void 0;
 const track_0_1 = __importDefault(__webpack_require__(23));
 const track_8_1 = __importDefault(__webpack_require__(24));
-const track_s_1 = __importDefault(__webpack_require__(25));
-const track_y_1 = __importDefault(__webpack_require__(26));
-const track_1_1 = __importDefault(__webpack_require__(27));
-let testTracks = [track_0_1.default, track_8_1.default, track_s_1.default, track_y_1.default];
+const track_o_1 = __importDefault(__webpack_require__(25));
+const track_s_1 = __importDefault(__webpack_require__(26));
+const track_y_1 = __importDefault(__webpack_require__(27));
+const track_1_1 = __importDefault(__webpack_require__(28));
+let testTracks = [track_0_1.default, track_8_1.default, track_o_1.default, track_s_1.default, track_y_1.default];
 exports.testTracks = testTracks;
 let tracks = [track_1_1.default];
 exports.tracks = tracks;
@@ -62173,62 +62276,29 @@ let track_0 = {
     startPoint: new THREE.Vector3(120, 100, 0),
     startDirection: new THREE.Vector3(0, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, 0, 0, "YZX"),
-    curves: [
+    curveData: [
         {
-            points: [
-                new THREE.Vector3(120, 90, 0),
-                new THREE.Vector3(80, 40, 200),
-                new THREE.Vector3(-80, 90, 200),
-                new THREE.Vector3(-120, 60, 0),
-                new THREE.Vector3(-80, 110, -200),
-                new THREE.Vector3(80, 60, -200),
-            ],
+            points: [[120, 90, 0], [80, 40, 200], [-80, 90, 200],
+                [-120, 60, 0], [-80, 110, -200], [80, 60, -200]],
             closed: true,
             extrudeShapeIndex: 0
         },
     ],
-    layers: [
+    layerData: [
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(7, 0),
-                    new THREE.Vector2(-7, 0),
-                ])
-            ],
-            material: new THREE.MeshBasicMaterial({
-                transparent: true,
-                opacity: 0
-            })
+            shapes: [[[7, 0], [-7, 0]]],
+            material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(6, 0.4),
-                    new THREE.Vector2(-6, 0.4),
-                ])
-            ],
-            material: new THREE.MeshLambertMaterial({
-                color: 0x000e54,
-                wireframe: false
-            })
+            shapes: [[[6, 0.4], [-6, 0.4]]],
+            material: new THREE.MeshLambertMaterial({ color: 0x000e54 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(7, 0.5),
-                    new THREE.Vector2(-7, 0.5),
-                ])
-            ],
-            material: new THREE.MeshStandardMaterial({
-                color: 0x99ccff,
-                wireframe: false
-            })
+            shapes: [[[7, 0.5], [-7, 0.5]]],
+            material: new THREE.MeshStandardMaterial({ color: 0x99ccff })
         }
     ],
-    extrudeOptions: {
-        steps: 640,
-        bevelEnabled: true,
-    },
+    checkpoints: [],
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
@@ -62269,84 +62339,37 @@ let track_8 = {
     startPoint: new THREE.Vector3(0, 1, 0),
     startDirection: new THREE.Vector3(1, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, Math.PI / 4, 0, "YZX"),
-    curves: [
+    curveData: [
         {
-            points: [
-                new THREE.Vector3(0, 1, 0),
-                new THREE.Vector3(100, 1, 100),
-                new THREE.Vector3(100, 1, 200),
-                new THREE.Vector3(50, 1, 300),
-                new THREE.Vector3(-50, 1, 300),
-                new THREE.Vector3(-100, 1, 200),
-                new THREE.Vector3(-100, 1, 100),
-                new THREE.Vector3(-75, 1, 75),
-            ],
+            points: [[0, 1, 0], [100, 1, 100], [100, 1, 200], [50, 1, 300],
+                [-50, 1, 300], [-100, 1, 200], [-100, 1, 100], [-75, 1, 75]],
             extrudeShapeIndex: 0
         },
         {
-            points: [
-                new THREE.Vector3(-75, 1, 75),
-                new THREE.Vector3(0, 11, 0),
-                new THREE.Vector3(75, 1, -75),
-            ],
+            points: [[-75, 1, 75], [0, 11, 0], [75, 1, -75]],
             extrudeShapeIndex: 0
         },
         {
-            points: [
-                new THREE.Vector3(75, 1, -75),
-                new THREE.Vector3(100, 1, -100),
-                new THREE.Vector3(100, 1, -200),
-                new THREE.Vector3(50, 1, -300),
-                new THREE.Vector3(-50, 1, -300),
-                new THREE.Vector3(-100, 1, -200),
-                new THREE.Vector3(-100, 1, -100),
-                new THREE.Vector3(0, 1, 0),
-            ],
+            points: [[75, 1, -75], [100, 1, -100], [100, 1, -200], [50, 1, -300],
+                [-50, 1, -300], [-100, 1, -200], [-100, 1, -100], [0, 1, 0]],
             extrudeShapeIndex: 0
         }
     ],
-    layers: [
+    layerData: [
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0, 5),
-                    new THREE.Vector2(0, -5),
-                ])
-            ],
-            material: new THREE.MeshBasicMaterial({
-                transparent: true,
-                opacity: 0
-            })
+            shapes: [[[0, 5], [0, -5]]],
+            material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0.4, 5),
-                    new THREE.Vector2(0.4, -5),
-                ])
-            ],
-            material: new THREE.MeshLambertMaterial({
-                color: 0x000e54,
-                wireframe: false
-            })
+            shapes: [[[0.4, 5], [0.4, -5]]],
+            material: new THREE.MeshLambertMaterial({ color: 0x000e54 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0.5, 5.6),
-                    new THREE.Vector2(0.5, -5.6),
-                ])
-            ],
-            material: new THREE.MeshStandardMaterial({
-                color: 0x99ccff,
-                wireframe: false
-            })
+            shapes: [[[0.5, 5.6], [0.5, -5.6]]],
+            material: new THREE.MeshStandardMaterial({ color: 0x99ccff })
         }
     ],
-    extrudeOptions: {
-        steps: 640,
-        bevelEnabled: true,
-    },
+    checkpoints: [],
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
@@ -62383,186 +62406,38 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-let track_s = {
-    startPoint: new THREE.Vector3(0, 10, 0),
+let track_o = {
+    startPoint: new THREE.Vector3(20, 1, 0),
     startDirection: new THREE.Vector3(0, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, 0, 0, "YZX"),
-    curves: [
+    curveData: [
         {
-            points: [
-                new THREE.Vector3(0, 10, -20),
-                new THREE.Vector3(0, 10, 20),
-            ],
-            extrudeShapeIndex: 0
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 20),
-                new THREE.Vector3(0, 10, 40),
-            ],
+            points: [[0, 1, 0]],
             extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 0
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 40),
-                new THREE.Vector3(0, 10, 60),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 800
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 60),
-                new THREE.Vector3(0, 10, 80),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 1600
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 80),
-                new THREE.Vector3(0, 10, 100),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 2400
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 100),
-                new THREE.Vector3(0, 10, 120),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 3200
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 120),
-                new THREE.Vector3(0, 10, 140),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 4000
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 140),
-                new THREE.Vector3(0, 10, 160),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 4800
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 160),
-                new THREE.Vector3(0, 10, 180),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 5600
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 180),
-                new THREE.Vector3(0, 10, 200),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 6400
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 200),
-                new THREE.Vector3(0, 10, 220),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 7200
-        },
-        {
-            points: [
-                new THREE.Vector3(0, 10, 220),
-                new THREE.Vector3(0, 10, 240),
-            ],
-            extrudeShapeIndex: 0,
-            moving: true,
-            direction: new THREE.Vector3(10, 0, 0),
-            period: 8000,
-            phase: 8000
+            ellipse: true,
+            radius: [50, 50],
+            angles: [0, 2 * Math.PI]
         },
     ],
-    layers: [
+    layerData: [
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0, 5),
-                    new THREE.Vector2(0, -5),
-                ])
-            ],
-            material: new THREE.MeshBasicMaterial({
-                transparent: true,
-                opacity: 0
-            })
+            shapes: [[[0, 7], [0, -7]]],
+            material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0.4, 4),
-                    new THREE.Vector2(0.4, -4),
-                ])
-            ],
-            material: new THREE.MeshLambertMaterial({
-                color: 0x000e54,
-                wireframe: false
-            })
+            shapes: [[[0.4, 6], [0.4, -6]]],
+            material: new THREE.MeshLambertMaterial({ color: 0x000e54 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0.5, 5),
-                    new THREE.Vector2(0.5, -5),
-                ])
-            ],
-            material: new THREE.MeshStandardMaterial({
-                color: 0x99ccff,
-                wireframe: false
-            })
+            shapes: [[[0.5, 7], [0.5, -7]]],
+            material: new THREE.MeshStandardMaterial({ color: 0x99ccff })
         }
     ],
-    extrudeOptions: {
-        steps: 640,
-        bevelEnabled: true,
-    },
+    checkpoints: [],
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
-exports["default"] = track_s;
+exports["default"] = track_o;
 
 
 /***/ }),
@@ -62595,127 +62470,45 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-let track_y = {
+let track_s = {
     startPoint: new THREE.Vector3(0, 10, 0),
     startDirection: new THREE.Vector3(0, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, 0, 0, "YZX"),
-    curves: [
+    curveData: [
         {
-            points: [
-                new THREE.Vector3(0, 10, -20),
-                new THREE.Vector3(0, 10, 20),
-            ],
+            points: [[0, 10, -20], [0, 10, 20]],
             extrudeShapeIndex: 0
         },
-        {
-            points: [
-                new THREE.Vector3(-5, 10, 20),
-                new THREE.Vector3(-5, 10, 30),
-                new THREE.Vector3(-20, 10, 40),
-                new THREE.Vector3(-20, 10, 50),
-            ],
-            extrudeShapeIndex: 1
-        },
-        {
-            points: [
-                new THREE.Vector3(5, 10, 20),
-                new THREE.Vector3(5, 10, 30),
-                new THREE.Vector3(20, 10, 40),
-                new THREE.Vector3(20, 10, 50),
-            ],
-            extrudeShapeIndex: 1
-        },
-        {
-            points: [
-                new THREE.Vector3(-20, 10, 50),
-                new THREE.Vector3(-20, 10, 60),
-                new THREE.Vector3(-20, 15, 80),
-                new THREE.Vector3(-20, 10, 100),
-                new THREE.Vector3(-20, 10, 110),
-            ],
-            extrudeShapeIndex: 2
-        },
-        {
-            points: [
-                new THREE.Vector3(20, 10, 50),
-                new THREE.Vector3(20, 10, 60),
-                new THREE.Vector3(20, 5, 80),
-                new THREE.Vector3(20, 10, 100),
-                new THREE.Vector3(20, 10, 110),
-            ],
-            extrudeShapeIndex: 2
-        },
+        ...Array(10).fill(0).map((_, i) => {
+            return {
+                points: [[0, 10, (i + 1) * 20], [0, 10, (i + 2) * 20]],
+                extrudeShapeIndex: 0,
+                moving: true,
+                direction: new THREE.Vector3(10, 0, 0),
+                period: 8000,
+                phase: i * 800
+            };
+        })
     ],
-    layers: [
+    layerData: [
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0, 10),
-                    new THREE.Vector2(0, -10),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(0, 5),
-                    new THREE.Vector2(0, -5),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(5, 0),
-                    new THREE.Vector2(-5, 0),
-                ]),
-            ],
-            material: new THREE.MeshBasicMaterial({
-                transparent: true,
-                opacity: 0
-            })
+            shapes: [[[0, 5], [0, -5]]],
+            material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0.4, 9),
-                    new THREE.Vector2(0.4, -9),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(0.4, 4),
-                    new THREE.Vector2(0.4, -4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(4, 0.4),
-                    new THREE.Vector2(-4, 0.4),
-                ]),
-            ],
-            material: new THREE.MeshLambertMaterial({
-                color: 0x000e54,
-                wireframe: false
-            })
+            shapes: [[[0.4, 4], [0.4, -4]]],
+            material: new THREE.MeshLambertMaterial({ color: 0x000e54 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(0.5, 10),
-                    new THREE.Vector2(0.5, -10),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(0.5, 5),
-                    new THREE.Vector2(0.5, -5),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(5, 0.5),
-                    new THREE.Vector2(-5, 0.5),
-                ]),
-            ],
-            material: new THREE.MeshStandardMaterial({
-                color: 0x99ccff,
-                wireframe: false
-            })
+            shapes: [[[0.5, 5], [0.5, -5]]],
+            material: new THREE.MeshLambertMaterial({ color: 0x99ccff })
         }
     ],
-    extrudeOptions: {
-        steps: 640,
-        bevelEnabled: true,
-    },
+    checkpoints: [],
     backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
     gridColor: 0x5badfb
 };
-exports["default"] = track_y;
+exports["default"] = track_s;
 
 
 /***/ }),
@@ -62748,267 +62541,200 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-let track_1 = {
-    startPoint: new THREE.Vector3(0, 0, 0),
-    startDirection: new THREE.Vector3(1, 0, 0).normalize(),
-    startRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
-    curves: [
+let track_y = {
+    startPoint: new THREE.Vector3(0, 10, 0),
+    startDirection: new THREE.Vector3(0, 0, 1).normalize(),
+    startRotation: new THREE.Euler(0, 0, 0, "YZX"),
+    curveData: [
         {
-            points: [
-                new THREE.Vector3(-50, 0, 0),
-                new THREE.Vector3(150, 0, 0),
-            ],
-            extrudeShapeIndex: 2
-        },
-        {
-            points: [
-                new THREE.Vector3(150, 0, 8),
-                new THREE.Vector3(200, 0, 8),
-                new THREE.Vector3(250, -10, 8),
-                new THREE.Vector3(300, 0, 8),
-                new THREE.Vector3(350, 10, 8),
-                new THREE.Vector3(400, 0, 8),
-                new THREE.Vector3(450, -10, 8),
-                new THREE.Vector3(500, 0, 8),
-                new THREE.Vector3(550, 0, 8),
-            ],
-            extrudeShapeIndex: 3
-        },
-        {
-            points: [
-                new THREE.Vector3(150, 0, -8),
-                new THREE.Vector3(200, 0, -8),
-                new THREE.Vector3(250, 10, -8),
-                new THREE.Vector3(300, 0, -8),
-                new THREE.Vector3(350, -10, -8),
-                new THREE.Vector3(400, 0, -8),
-                new THREE.Vector3(450, 10, -8),
-                new THREE.Vector3(500, 0, -8),
-                new THREE.Vector3(550, 0, -8),
-            ],
-            extrudeShapeIndex: 3
-        },
-        {
-            points: [
-                new THREE.Vector3(550, 0, 0),
-                new THREE.Vector3(600, 0, 0),
-                new THREE.Vector3(650, 4, 0),
-                new THREE.Vector3(675, 8, 50),
-                new THREE.Vector3(675, 8, 100),
-                new THREE.Vector3(650, 4, 150),
-                new THREE.Vector3(600, 0, 150),
-                new THREE.Vector3(550, 0, 150),
-            ],
-            extrudeShapeIndex: 2
-        },
-        {
-            points: [
-                new THREE.Vector3(550, 0, 150),
-                new THREE.Vector3(500, 0, 150),
-                new THREE.Vector3(450, 4, 150),
-                new THREE.Vector3(425, 8, 200),
-                new THREE.Vector3(425, 8, 250),
-                new THREE.Vector3(450, 4, 300),
-                new THREE.Vector3(500, 0, 300),
-                new THREE.Vector3(550, 0, 300),
-            ],
+            points: [[0, 10, -20], [0, 10, 20]],
             extrudeShapeIndex: 0
         },
         {
-            points: [
-                new THREE.Vector3(550, 0, 300),
-                new THREE.Vector3(600, 0, 300),
-                new THREE.Vector3(650, 4, 300),
-                new THREE.Vector3(675, 8, 350),
-                new THREE.Vector3(675, 8, 400),
-                new THREE.Vector3(650, 4, 450),
-                new THREE.Vector3(600, 0, 450),
-                new THREE.Vector3(550, 0, 450),
-            ],
-            extrudeShapeIndex: 2
-        },
-        {
-            points: [
-                new THREE.Vector3(550, 0, 450),
-                new THREE.Vector3(450, 0, 450),
-            ],
-            extrudeShapeIndex: 0
-        },
-        ...Array(10).fill(0).map((_, i) => {
-            return {
-                points: [
-                    new THREE.Vector3(450 - i * 20, 0, 450),
-                    new THREE.Vector3(450 - (i + 1) * 20, 0, 450),
-                ],
-                extrudeShapeIndex: 0,
-                moving: true,
-                direction: new THREE.Vector3(0, 0, 10),
-                period: 6000,
-                phase: i * 1200
-            };
-        }),
-        {
-            points: [
-                new THREE.Vector3(250, 0, 450),
-                new THREE.Vector3(200, 0, 450),
-            ],
-            extrudeShapeIndex: 0
-        },
-        {
-            points: [
-                new THREE.Vector3(200, 0, 458),
-                new THREE.Vector3(170, 2, 458),
-                new THREE.Vector3(140, 8, 300),
-                new THREE.Vector3(100, 8, 270),
-                new THREE.Vector3(70, 8, 270),
-                new THREE.Vector3(30, 8, 300),
-                new THREE.Vector3(0, 2, 458),
-                new THREE.Vector3(-30, 0, 458),
-            ],
+            points: [[-5, 10, 20], [-5, 10, 30], [-20, 10, 40], [-20, 10, 50]],
             extrudeShapeIndex: 1
         },
         {
-            points: [
-                new THREE.Vector3(200, 0, 442),
-                new THREE.Vector3(170, -2, 442),
-                new THREE.Vector3(140, -8, 600),
-                new THREE.Vector3(100, -8, 630),
-                new THREE.Vector3(70, -8, 630),
-                new THREE.Vector3(30, -8, 600),
-                new THREE.Vector3(0, -2, 442),
-                new THREE.Vector3(-30, 0, 442),
-            ],
+            points: [[5, 10, 20], [5, 10, 30], [20, 10, 40], [20, 10, 50]],
             extrudeShapeIndex: 1
         },
         {
-            points: [
-                new THREE.Vector3(-30, 0, 450),
-                new THREE.Vector3(-50, 0, 450),
-                new THREE.Vector3(-70, 0, 450),
-                new THREE.Vector3(-100, 0, 450),
-                new THREE.Vector3(-150, 0, 375),
-                new THREE.Vector3(-180, 0, 250),
-                new THREE.Vector3(-180, 0, 200),
-                new THREE.Vector3(-150, 0, 75),
-                new THREE.Vector3(-100, 0, 0),
-                new THREE.Vector3(-70, 0, 0),
-                new THREE.Vector3(-70, 0, 0),
-                new THREE.Vector3(-50, 0, 0),
-            ],
-            extrudeShapeIndex: 0
+            points: [[-20, 10, 50], [-20, 10, 60],
+                [-20, 15, 80], [-20, 10, 100], [-20, 10, 110]],
+            extrudeShapeIndex: 2
+        },
+        {
+            points: [[20, 10, 50], [20, 10, 60],
+                [20, 5, 80], [20, 10, 100], [20, 10, 110]],
+            extrudeShapeIndex: 2
         },
     ],
-    layers: [
+    layerData: [
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(16, 0),
-                    new THREE.Vector2(-16, 0),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(8, 0),
-                    new THREE.Vector2(-8, 0),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(16, 0),
-                    new THREE.Vector2(-16, 0),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(8, 0),
-                    new THREE.Vector2(-8, 0),
-                ]),
-            ],
-            material: new THREE.MeshBasicMaterial({
-                transparent: true,
-                opacity: 0
-            })
+            shapes: [[[0, 10], [0, -10]], [[0, 5], [0, -5]], [[5, 0], [-5, 0]]],
+            material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(15, 0.4),
-                    new THREE.Vector2(16, 0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(7, 0.4),
-                    new THREE.Vector2(8, 0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(15, -0.4),
-                    new THREE.Vector2(16, -0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(7, -0.4),
-                    new THREE.Vector2(8, -0.4),
-                ]),
-            ],
-            material: new THREE.MeshLambertMaterial({
-                color: 0xdddddd,
-                wireframe: false
-            })
+            shapes: [[[0.4, 9], [0.4, -9]], [[0.4, 4], [0.4, -4]], [[4, 0.4], [-4, 0.4]]],
+            material: new THREE.MeshLambertMaterial({ color: 0x000e54 })
         },
         {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(-15, 0.4),
-                    new THREE.Vector2(-16, 0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(-7, 0.4),
-                    new THREE.Vector2(-8, 0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(-15, -0.4),
-                    new THREE.Vector2(-16, -0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(-7, -0.4),
-                    new THREE.Vector2(-8, -0.4),
-                ]),
-            ],
-            material: new THREE.MeshStandardMaterial({
-                color: 0xdddddd,
-                wireframe: false
-            })
-        },
-        {
-            shapes: [
-                new THREE.Shape([
-                    new THREE.Vector2(15, 0.4),
-                    new THREE.Vector2(-15, 0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(7, 0.4),
-                    new THREE.Vector2(-7, 0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(15, -0.4),
-                    new THREE.Vector2(-15, -0.4),
-                ]),
-                new THREE.Shape([
-                    new THREE.Vector2(7, -0.4),
-                    new THREE.Vector2(-7, -0.4),
-                ]),
-            ],
-            material: new THREE.MeshLambertMaterial({
-                color: 0xaaaaaa,
-                wireframe: false,
-                transparent: true,
-                opacity: 0.9
-            })
+            shapes: [[[0.5, 10], [0.5, -10]], [[0.5, 5], [0.5, -5]], [[5, 0.5], [-5, 0.5]]],
+            material: new THREE.MeshStandardMaterial({ color: 0x99ccff })
         }
     ],
-    extrudeOptions: {
-        steps: 640,
-        bevelEnabled: true,
-    },
+    checkpoints: [],
+    backgroundColors: ["#000226", "#000F39", "#002555", "#07205a"],
+    gridColor: 0x5badfb
+};
+exports["default"] = track_y;
+
+
+/***/ }),
+/* 28 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
+let track_1 = {
+    startPoint: new THREE.Vector3(0, 0, 0),
+    startDirection: new THREE.Vector3(1, 0, 0),
+    startRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+    curveData: [
+        {
+            points: [[-100, 0, 0], [150, 0, 0]],
+            extrudeShapeIndex: 0
+        },
+        {
+            points: [[150, 0, 8], [200, 0, 8], [250, -10, 8],
+                [300, 0, 8], [350, 10, 8], [400, 0, 8],
+                [450, -10, 8], [500, 0, 8], [550, 0, 8]],
+            extrudeShapeIndex: 1
+        },
+        {
+            points: [[150, 0, -8], [200, 0, -8], [250, 10, -8],
+                [300, 0, -8], [350, -10, -8], [400, 0, -8],
+                [450, 10, -8], [500, 0, -8], [550, 0, -8]],
+            extrudeShapeIndex: 1
+        },
+        {
+            points: [[550, 0, 50]],
+            extrudeShapeIndex: 2,
+            ellipse: true,
+            radius: [50, 50],
+            angles: [3 * Math.PI / 2, 0]
+        },
+        {
+            points: [[600, 0, 50], [600, 0, 100], [550, 8, 200], [480, 8, 220], [400, -16, 200],
+                [200, -24, -120], [120, -20, -150], [100, -12, -150]],
+            extrudeShapeIndex: 2
+        },
+        {
+            points: [[50, -20, -150], [0, -20, -150], [-100, 24, -150], [-150, 24, -150]],
+            extrudeShapeIndex: 4
+        },
+        {
+            points: [[-150, 24, -158], [-180, 24, -158], [-210, 24, -160], [-240, 24, -180],
+                [-310, 24, -180], [-340, 24, -160], [-370, 24, -158], [-400, 24, -158]],
+            extrudeShapeIndex: 3
+        },
+        {
+            points: [[-150, 24, -142], [-180, 24, -142], [-210, 24, -140], [-240, 24, -120],
+                [-310, 24, -120], [-340, 24, -140], [-370, 24, -142], [-400, 24, -142]],
+            extrudeShapeIndex: 3
+        },
+        {
+            points: [[-400, 24, -75]],
+            extrudeShapeIndex: 2,
+            ellipse: true,
+            radius: [75, 75],
+            angles: [Math.PI / 2, 3 * Math.PI / 2]
+        },
+        {
+            points: [[-400, 24, 0], [-320, 24, 0], [-240, 16, 0], [-160, 32, 0]],
+            extrudeShapeIndex: 0
+        }
+    ],
+    layerData: [
+        {
+            shapes: [[[16, 0], [-16, 0]], [[8, 0], [-8, 0]],
+                [[0, 16], [0, -16]], [[0, 8], [0, -8]], [[16, 0], [-16, 0]]],
+            material: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+        },
+        {
+            shapes: [[[15, -0.4], [16, -0.4]], [[7, -0.4], [8, -0.4]],
+                [[0.4, 15], [0.4, 16]], [[0.4, 7], [0.4, 8]], [[15, 0.4], [16, 0.4]]],
+            material: new THREE.MeshLambertMaterial({ color: 0xdddddd })
+        },
+        {
+            shapes: [[[-15, -0.4], [-16, -0.4]], [[-7, -0.4], [-8, -0.4]],
+                [[0.4, -15], [0.4, -16]], [[0.4, -7], [0.4, -8]], [[-15, 0.4], [-16, 0.4]]],
+            material: new THREE.MeshStandardMaterial({ color: 0xdddddd })
+        },
+        {
+            shapes: [[[15, -0.4], [-15, -0.4]], [[7, -0.4], [-7, -0.4]],
+                [[0.4, 15], [0.4, -15]], [[0.4, 7], [0.4, -7]], [[15, 0.4], [-15, 0.4]]],
+            material: new THREE.MeshLambertMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.3 })
+        }
+    ],
+    checkpoints: [
+        {
+            position: new THREE.Vector3(50, 0, 0),
+            resetDirection: new THREE.Vector3(1, 0, 0),
+            resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(550, 0, 0),
+            resetDirection: new THREE.Vector3(1, 0, 0),
+            resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(280, -24, 0),
+            resetDirection: new THREE.Vector3(-1, 0, -1).normalize(),
+            resetRotation: new THREE.Euler(0, 5 * Math.PI / 4, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(-150, 24, -150),
+            resetDirection: new THREE.Vector3(-1, 0, 0).normalize(),
+            resetRotation: new THREE.Euler(0, -Math.PI / 2, 0, "YZX"),
+        },
+        {
+            position: new THREE.Vector3(-320, 24, 0),
+            resetDirection: new THREE.Vector3(1, 0, 0).normalize(),
+            resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+        }
+    ],
     backgroundColors: ["#000226"],
 };
 exports["default"] = track_1;
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -63017,14 +62743,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.mustang = exports.bike = void 0;
-var bike_1 = __webpack_require__(29);
+var bike_1 = __webpack_require__(30);
 Object.defineProperty(exports, "bike", ({ enumerable: true, get: function () { return __importDefault(bike_1).default; } }));
-var mustang_1 = __webpack_require__(30);
+var mustang_1 = __webpack_require__(31);
 Object.defineProperty(exports, "mustang", ({ enumerable: true, get: function () { return __importDefault(mustang_1).default; } }));
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -63044,7 +62770,7 @@ exports["default"] = bike;
 
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
