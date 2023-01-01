@@ -1,3 +1,4 @@
+@import "./curtain.css";
 @import "./joystick.css";
 
 html, body, canvas {

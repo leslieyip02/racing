@@ -57671,6 +57671,8 @@ class Vehicle {
         this.height = vehicleData.height;
         this.length = vehicleData.length;
         this.render(scene, vehicleData.modelPath, debug);
+        this.alive = true;
+        this.canMove = true;
     }
     loadGLTF(scene, data) {
         this.model = data.scene;
@@ -57776,6 +57778,8 @@ class Vehicle {
         }
     }
     handleVehicleMovement(keysPressed, dt) {
+        if (!this.canMove)
+            return;
         // acceleration
         if (keysPressed["w"])
             this.velocity.add(this.direction.clone()
@@ -57825,22 +57829,43 @@ class Vehicle {
         if (this.directionDebug)
             this.directionDebug.update(this.direction.clone(), this.position.clone());
     }
-    handleCameraMovement(forward) {
-        let cameraPosition = this.position.clone();
+    handleCameraMovement(forward, follow = true) {
         let lookAtPosition = this.position.clone();
-        let offset = this.direction.clone().multiplyScalar(3);
-        if (forward) {
-            // set camera behind and above vehicle
-            cameraPosition.sub(offset);
-            lookAtPosition.add(this.direction);
+        // the camera will only follow the vehicle if it is in bounds
+        if (follow) {
+            let cameraPosition = this.position.clone();
+            let offset = this.direction.clone().multiplyScalar(3);
+            if (forward) {
+                // set camera behind and above vehicle
+                cameraPosition.sub(offset);
+                lookAtPosition.add(this.direction);
+            }
+            else {
+                cameraPosition.add(offset);
+                lookAtPosition.sub(this.direction);
+            }
+            cameraPosition.y = cameraPosition.y + 1.5;
+            this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        }
+        this.camera.lookAt(lookAtPosition);
+    }
+    resetToCheckpoint(checkpoint) {
+        // default checkpoint values
+        if (!checkpoint) {
+            this.position = new THREE.Vector3(0, 0, 0);
+            this.direction = new THREE.Vector3(1, 0, 0);
+            this.rotation = new THREE.Euler(0, Math.PI / 2, 0, "YZX");
         }
         else {
-            cameraPosition.add(offset);
-            lookAtPosition.sub(this.direction);
+            this.position = checkpoint.mesh.position.clone();
+            this.direction = checkpoint.resetDirection.clone();
+            this.rotation = checkpoint.resetRotation.clone();
         }
-        cameraPosition.y = cameraPosition.y + 1.5;
-        this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-        this.camera.lookAt(lookAtPosition);
+        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.model.position.set(this.position.x, this.position.y, this.position.z);
+        this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
+        this.model.setRotationFromEuler(this.rotation.clone());
+        this.hitbox.setRotationFromEuler(this.rotation.clone());
     }
     update(keysPressed, track, dt) {
         if (!this.model || !this.hitbox || !track || !dt)
@@ -57848,23 +57873,30 @@ class Vehicle {
         this.gravity = defaultGravity;
         this.handleTrackCollision(track);
         this.handleVehicleMovement(keysPressed, dt);
-        // reset vehicle to last checkpoint if it falls out of bounds
-        if (this.position.y < -30) {
-            if (!this.checkpoint) {
-                this.position = new THREE.Vector3(0, 0, 0);
-            }
-            else {
-                this.position = this.checkpoint.mesh.position.clone();
-                this.direction = this.checkpoint.resetDirection.clone();
-                this.rotation = this.checkpoint.resetRotation.clone();
-                this.velocity = new THREE.Vector3(0, 0, 0);
-                this.model.setRotationFromEuler(this.rotation.clone());
-                this.hitbox.setRotationFromEuler(this.rotation.clone());
+        // reset vehicle to last checkpoint if it falls out of bounds        
+        if (this.position.y < -30 || !this.alive) {
+            let curtain = document.getElementById("curtain");
+            curtain.classList.add("fade-to-black");
+            if (this.alive) {
+                this.alive = false;
+                setTimeout(() => {
+                    this.resetToCheckpoint(this.checkpoint);
+                    this.alive = true;
+                    this.canMove = false;
+                    curtain.classList.remove("fade-to-black");
+                    curtain.style.opacity = "100";
+                    curtain.classList.add("scroll-up");
+                    setTimeout(() => {
+                        curtain.classList.remove("scroll-up");
+                        curtain.style.opacity = "0";
+                        this.canMove = true;
+                    }, 1000);
+                }, 900);
             }
         }
         if (!this.manualCamera) {
             let forward = !keysPressed["r"];
-            this.handleCameraMovement(forward);
+            this.handleCameraMovement(forward, this.alive);
         }
     }
 }
