@@ -148,9 +148,11 @@ class GameScene extends THREE.Scene {
         this.track = new objects_1.Track(this, trackData, debug);
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
-        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.bike, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
+        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
+        //     this.track.startDirection, this.track.startRotation, debug);
         // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
         //     this.track.startDirection, this.track.startRotation, debug);
+        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeder, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         if (debug) {
@@ -62774,11 +62776,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.mustang = exports.bike = void 0;
+exports.speeder = exports.mustang = exports.bike = void 0;
 var bike_1 = __webpack_require__(30);
 Object.defineProperty(exports, "bike", ({ enumerable: true, get: function () { return __importDefault(bike_1).default; } }));
 var mustang_1 = __webpack_require__(31);
 Object.defineProperty(exports, "mustang", ({ enumerable: true, get: function () { return __importDefault(mustang_1).default; } }));
+var speeder_1 = __webpack_require__(32);
+Object.defineProperty(exports, "speeder", ({ enumerable: true, get: function () { return __importDefault(speeder_1).default; } }));
 
 
 /***/ }),
@@ -62819,6 +62823,26 @@ let mustang = {
     length: 2.8
 };
 exports["default"] = mustang;
+
+
+/***/ }),
+/* 32 */
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+let speeder = {
+    modelPath: "./assets/models/speeder.glb",
+    acceleration: 0.0015,
+    deceleration: 0.0003,
+    friction: 0.98,
+    turnRate: 0.0006,
+    maxRoll: 0.3,
+    width: 2,
+    height: 1.2,
+    length: 2.8
+};
+exports["default"] = speeder;
 
 
 /***/ })
