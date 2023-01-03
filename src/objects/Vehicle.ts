@@ -35,6 +35,7 @@ export default class Vehicle {
 
     directionDebug?: DebugVector;
     normalDebug?: DebugVector;
+    upDebug?: DebugVector;
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera,
         vehicleData: IVehicleData, position: THREE.Vector3, direction: THREE.Vector3,
@@ -114,6 +115,7 @@ export default class Vehicle {
         if (debug) {
             this.directionDebug = new DebugVector(scene, this.direction, this.position);
             this.normalDebug = new DebugVector(scene, this.direction, this.position);
+            this.upDebug = new DebugVector(scene, this.direction, this.position, 3, 0x00ff00);
         }
     }
 
@@ -265,6 +267,9 @@ export default class Vehicle {
 
         if (this.directionDebug)
             this.directionDebug.update(this.direction.clone(), this.position.clone());
+
+        if (this.upDebug)
+            this.upDebug.update(this.hitbox.up, this.position.clone());
     }
 
     handleCameraMovement(forward: boolean, follow: boolean = true) {
