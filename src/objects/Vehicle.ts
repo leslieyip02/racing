@@ -281,19 +281,19 @@ export default class Vehicle {
         // the camera will only follow the vehicle if it is in bounds
         if (follow) {
             let cameraPosition = this.position.clone();
-            let positionOffset = this.direction.clone().multiplyScalar(3);
-            let focusOffset = new THREE.Vector3(this.direction.x, 0, this.direction.z);
+            let facingDirection = new THREE.Vector3(this.direction.x, 
+                0, this.direction.z).normalize();
 
-            if (forward) {
-                // set camera behind and above vehicle
-                cameraPosition.sub(positionOffset);
-                lookAtPosition.add(focusOffset);
-            } else {
-                cameraPosition.add(positionOffset);
-                lookAtPosition.sub(focusOffset);
-            }
-    
-            cameraPosition.y = cameraPosition.y + 1.5;
+            if (!forward)
+                facingDirection.negate();
+
+            // set the camera to look further in front of the vehicle 
+            lookAtPosition.add(facingDirection);
+
+            // set camera behind and above vehicle
+            let positionOffset = facingDirection.clone().multiplyScalar(3);
+            cameraPosition.sub(positionOffset);
+            cameraPosition.y += 1.5;
             this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
         }
 
