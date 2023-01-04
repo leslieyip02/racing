@@ -4,7 +4,7 @@ import { IControls, ICheckpoint, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-let defaultGravity = new THREE.Vector3(0, -0.008, 0);
+let defaultGravity = new THREE.Vector3(0, -0.012, 0);
 
 export default class Vehicle {
     camera: THREE.PerspectiveCamera;
