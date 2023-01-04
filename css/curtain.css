@@ -4,6 +4,7 @@
     height: 100vh;
     background-color: #000000;
     opacity: 0;
+    pointer-events: none;
 }
 
 .fade-to-black {

@@ -127,7 +127,7 @@ class GameScene extends THREE.Scene {
     }
     render(debug) {
         // set up camera
-        this.camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 3200);
+        this.camera = new THREE.PerspectiveCamera(80, this.width / this.height, 0.1, 3200);
         // set up renderer
         this.renderer = new THREE.WebGLRenderer({
             canvas: document.getElementById("game"),
@@ -148,11 +148,11 @@ class GameScene extends THREE.Scene {
         this.track = new objects_1.Track(this, trackData, debug);
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
-        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
+        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.bike, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
         // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
         //     this.track.startDirection, this.track.startRotation, debug);
-        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeder, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
+        // let vehicle = new Vehicle(this, this.camera, speeder, this.track.startPoint,
+        //     this.track.startDirection, this.track.startRotation, debug);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         if (debug) {
@@ -57654,7 +57654,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
 const debug_1 = __webpack_require__(19);
 const GLTFLoader_1 = __webpack_require__(21);
-let defaultGravity = new THREE.Vector3(0, -0.004, 0);
+let defaultGravity = new THREE.Vector3(0, -0.012, 0);
 class Vehicle {
     constructor(scene, camera, vehicleData, position, direction, rotation, debug) {
         this.manualCamera = false;
@@ -57720,6 +57720,7 @@ class Vehicle {
             if (debug) {
                 this.directionDebug = new debug_1.DebugVector(scene, this.direction, this.position);
                 this.normalDebug = new debug_1.DebugVector(scene, this.direction, this.position);
+                this.upDebug = new debug_1.DebugVector(scene, this.direction, this.position, 3, 0x00ff00);
             }
         });
     }
@@ -57739,26 +57740,27 @@ class Vehicle {
             let collisionResults = ray.intersectObjects(trackMeshes);
             if (collisionResults.length > 0 &&
                 collisionResults[0].distance < directionVector.length()) {
+                // stop model from clipping through
+                this.gravity = new THREE.Vector3(0, 0, 0);
                 let collision = collisionResults[0].point;
                 if (this.position.y < collision.y)
                     this.position.y = collision.y;
-                let surfaceNormal = collisionResults[0].face.normal;
-                this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
-                // stop model from flipping when it clips below the track 
-                // and surfaceNormal points downwards
-                if (surfaceNormal.y >= 0) {
-                    // get component of surface normal along the vehicle's direction
-                    let p = this.hitbox.up.clone().cross(this.direction.clone());
-                    let v = surfaceNormal.clone().projectOnPlane(p);
-                    let angle = v.angleTo(this.hitbox.up);
-                    // if normal vector · direction vector is negative,
-                    // they are facing in opposite directions,
-                    // so the vehicle is moving up a slope
-                    let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
-                    if (up)
-                        angle = 2 * Math.PI - angle;
-                    this.rotation.x = angle;
-                }
+                let surfaceNormal = collisionResults[0].face.normal.clone();
+                // ensure surfaceNormal always points upwards
+                // to prevent flipping
+                if (surfaceNormal.y < 0)
+                    surfaceNormal.negate();
+                // get component of surface normal along the vehicle's direction
+                let planeNormal = this.hitbox.up.clone().cross(this.direction.clone());
+                let normalAlongDirection = surfaceNormal.clone().projectOnPlane(planeNormal);
+                let angle = normalAlongDirection.angleTo(this.hitbox.up);
+                // set the direction to be along the track
+                this.direction = normalAlongDirection.cross(planeNormal)
+                    .negate().normalize();
+                // angle if vehicle going up slope
+                if (this.direction.y >= 0)
+                    angle = 2 * Math.PI - angle;
+                this.rotation.x = angle;
                 if (this.normalDebug)
                     this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
                 handledCollision = true;
@@ -57830,21 +57832,24 @@ class Vehicle {
         this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
         if (this.directionDebug)
             this.directionDebug.update(this.direction.clone(), this.position.clone());
+        if (this.upDebug)
+            this.upDebug.update(this.hitbox.up, this.position.clone());
     }
     handleCameraMovement(forward, follow = true) {
         let lookAtPosition = this.position.clone();
         // the camera will only follow the vehicle if it is in bounds
         if (follow) {
             let cameraPosition = this.position.clone();
-            let offset = this.direction.clone().multiplyScalar(3);
+            let positionOffset = this.direction.clone().multiplyScalar(3);
+            let focusOffset = new THREE.Vector3(this.direction.x, 0, this.direction.z);
             if (forward) {
                 // set camera behind and above vehicle
-                cameraPosition.sub(offset);
-                lookAtPosition.add(this.direction);
+                cameraPosition.sub(positionOffset);
+                lookAtPosition.add(focusOffset);
             }
             else {
-                cameraPosition.add(offset);
-                lookAtPosition.sub(this.direction);
+                cameraPosition.add(positionOffset);
+                lookAtPosition.sub(focusOffset);
             }
             cameraPosition.y = cameraPosition.y + 1.5;
             this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
@@ -62667,13 +62672,15 @@ let track_1 = {
             points: [[150, 0, 8], [200, 0, 8], [250, -10, 8],
                 [300, 0, 8], [350, 10, 8], [400, 0, 8],
                 [450, -10, 8], [500, 0, 8], [550, 0, 8]],
-            extrudeShapeIndex: 1
+            extrudeShapeIndex: 1,
+            extrudeOptions: { steps: 180, bevelEnabled: true }
         },
         {
             points: [[150, 0, -8], [200, 0, -8], [250, 10, -8],
                 [300, 0, -8], [350, -10, -8], [400, 0, -8],
                 [450, 10, -8], [500, 0, -8], [550, 0, -8]],
-            extrudeShapeIndex: 1
+            extrudeShapeIndex: 1,
+            extrudeOptions: { steps: 180, bevelEnabled: true }
         },
         {
             points: [[550, 0, 50]],
@@ -62685,7 +62692,8 @@ let track_1 = {
         {
             points: [[600, 0, 50], [600, 0, 100], [550, 8, 200], [480, 8, 220], [400, -16, 200],
                 [200, -24, -120], [120, -20, -150], [100, -12, -150]],
-            extrudeShapeIndex: 2
+            extrudeShapeIndex: 2,
+            extrudeOptions: { steps: 320, bevelEnabled: true }
         },
         {
             points: [[50, -20, -150], [0, -20, -150], [-100, 24, -150], [-150, 24, -150]],
@@ -62833,14 +62841,14 @@ exports["default"] = mustang;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 let speeder = {
     modelPath: "./assets/models/speeder.glb",
-    acceleration: 0.0015,
+    acceleration: 0.00125,
     deceleration: 0.0003,
     friction: 0.98,
     turnRate: 0.0006,
     maxRoll: 0.3,
-    width: 2,
+    width: 1,
     height: 1.2,
-    length: 2.8
+    length: 3.4
 };
 exports["default"] = speeder;
 
