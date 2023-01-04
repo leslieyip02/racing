@@ -14,13 +14,15 @@ let track_1: ITrackData = {
             points: [[150, 0, 8], [200, 0, 8], [250, -10, 8],
                 [300, 0, 8], [350, 10, 8], [400, 0, 8],
                 [450, -10, 8], [500, 0, 8], [550, 0, 8]],
-            extrudeShapeIndex: 1
+            extrudeShapeIndex: 1,
+            extrudeOptions: { steps: 180, bevelEnabled: true }
         },
         {
             points: [[150, 0, -8], [200, 0, -8], [250, 10, -8],
                 [300, 0, -8], [350, -10, -8], [400, 0, -8],
                 [450, 10, -8], [500, 0, -8], [550, 0, -8]],
-            extrudeShapeIndex: 1
+            extrudeShapeIndex: 1,
+            extrudeOptions: { steps: 180, bevelEnabled: true }
         },
         {
             points: [[550, 0, 50]],
@@ -32,7 +34,8 @@ let track_1: ITrackData = {
         {
             points: [[600, 0, 50], [600, 0, 100], [550, 8, 200], [480, 8, 220], [400, -16, 200], 
                 [200, -24, -120], [120, -20, -150], [100, -12, -150]],
-            extrudeShapeIndex: 2
+            extrudeShapeIndex: 2,
+            extrudeOptions: { steps: 320, bevelEnabled: true }
         },
         {
             points: [[50, -20, -150], [0, -20, -150], [-100, 24, -150], [-150, 24, -150]],

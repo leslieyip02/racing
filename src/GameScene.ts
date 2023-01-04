@@ -102,7 +102,7 @@ export default class GameScene extends THREE.Scene {
 
     render(debug?: boolean) {
         // set up camera
-        this.camera = new THREE.PerspectiveCamera(64, 
+        this.camera = new THREE.PerspectiveCamera(80, 
             this.width / this.height, 0.1, 3200);
 
         // set up renderer

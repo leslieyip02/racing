@@ -4,7 +4,7 @@ import { IControls, ICheckpoint, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-let defaultGravity = new THREE.Vector3(0, -0.004, 0);
+let defaultGravity = new THREE.Vector3(0, -0.008, 0);
 
 export default class Vehicle {
     camera: THREE.PerspectiveCamera;
@@ -146,31 +146,34 @@ export default class Vehicle {
             if (collisionResults.length > 0 &&
                 collisionResults[0].distance < directionVector.length()) {
 
+                // stop model from clipping through
+                this.gravity = new THREE.Vector3(0, 0, 0);
+
                 let collision = collisionResults[0].point;
                 if (this.position.y < collision.y)
                     this.position.y = collision.y;
+                    
+                let surfaceNormal = collisionResults[0].face.normal.clone();
 
-                let surfaceNormal = collisionResults[0].face.normal;
-                this.gravity = surfaceNormal.clone().multiplyScalar(-0.003);
+                // ensure surfaceNormal always points upwards
+                // to prevent flipping
+                if (surfaceNormal.y < 0) 
+                    surfaceNormal.negate();
 
-                // stop model from flipping when it clips below the track 
-                // and surfaceNormal points downwards
-                if (surfaceNormal.y >= 0) {
-                    // get component of surface normal along the vehicle's direction
-                    let p = this.hitbox.up.clone().cross(this.direction.clone());
-                    let v = surfaceNormal.clone().projectOnPlane(p);
-                    let angle = v.angleTo(this.hitbox.up)
+                // get component of surface normal along the vehicle's direction
+                let planeNormal = this.hitbox.up.clone().cross(this.direction.clone());
+                let normalAlongDirection = surfaceNormal.clone().projectOnPlane(planeNormal);
+                let angle = normalAlongDirection.angleTo(this.hitbox.up)
 
-                    // if normal vector · direction vector is negative,
-                    // they are facing in opposite directions,
-                    // so the vehicle is moving up a slope
-                    let up = surfaceNormal.clone().dot(this.direction.clone()) < 0;
+                // set the direction to be along the track
+                this.direction = normalAlongDirection.cross(planeNormal)
+                    .negate().normalize();
 
-                    if (up)
-                        angle = 2 * Math.PI - angle;
+                // angle if vehicle going up slope
+                if (this.direction.y >= 0)
+                    angle = 2 * Math.PI - angle;
 
-                    this.rotation.x = angle;
-                }
+                this.rotation.x = angle;
 
                 if (this.normalDebug)
                     this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
@@ -278,15 +281,16 @@ export default class Vehicle {
         // the camera will only follow the vehicle if it is in bounds
         if (follow) {
             let cameraPosition = this.position.clone();
-            let offset = this.direction.clone().multiplyScalar(3);
-    
+            let positionOffset = this.direction.clone().multiplyScalar(3);
+            let focusOffset = new THREE.Vector3(this.direction.x, 0, this.direction.z);
+
             if (forward) {
                 // set camera behind and above vehicle
-                cameraPosition.sub(offset);
-                lookAtPosition.add(this.direction);
+                cameraPosition.sub(positionOffset);
+                lookAtPosition.add(focusOffset);
             } else {
-                cameraPosition.add(offset);
-                lookAtPosition.sub(this.direction);
+                cameraPosition.add(positionOffset);
+                lookAtPosition.sub(focusOffset);
             }
     
             cameraPosition.y = cameraPosition.y + 1.5;
