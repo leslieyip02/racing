@@ -148,11 +148,11 @@ class GameScene extends THREE.Scene {
         this.track = new objects_1.Track(this, trackData, debug);
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
-        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.bike, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
+        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
+        //     this.track.startDirection, this.track.startRotation, debug);
         // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
         //     this.track.startDirection, this.track.startRotation, debug);
-        // let vehicle = new Vehicle(this, this.camera, speeder, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
+        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeder, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         if (debug) {
@@ -57840,18 +57840,15 @@ class Vehicle {
         // the camera will only follow the vehicle if it is in bounds
         if (follow) {
             let cameraPosition = this.position.clone();
-            let positionOffset = this.direction.clone().multiplyScalar(3);
-            let focusOffset = new THREE.Vector3(this.direction.x, 0, this.direction.z);
-            if (forward) {
-                // set camera behind and above vehicle
-                cameraPosition.sub(positionOffset);
-                lookAtPosition.add(focusOffset);
-            }
-            else {
-                cameraPosition.add(positionOffset);
-                lookAtPosition.sub(focusOffset);
-            }
-            cameraPosition.y = cameraPosition.y + 1.5;
+            let facingDirection = new THREE.Vector3(this.direction.x, 0, this.direction.z).normalize();
+            if (!forward)
+                facingDirection.negate();
+            // set the camera to look further in front of the vehicle 
+            lookAtPosition.add(facingDirection);
+            // set camera behind and above vehicle
+            let positionOffset = facingDirection.clone().multiplyScalar(3);
+            cameraPosition.sub(positionOffset);
+            cameraPosition.y += 1.5;
             this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
         }
         this.camera.lookAt(lookAtPosition);
