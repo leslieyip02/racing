@@ -3,7 +3,7 @@ import { IVehicleData } from "../../src/utils/interfaces";
 let speeder: IVehicleData = {
     modelPath: "./assets/models/speeder.glb",
 
-    acceleration: 0.0015,
+    acceleration: 0.00125,
     deceleration: 0.0003,
     friction: 0.98,
     turnRate: 0.0006,
