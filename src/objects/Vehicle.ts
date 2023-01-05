@@ -169,10 +169,11 @@ export default class Vehicle {
                 this.direction = normalAlongDirection.cross(planeNormal)
                     .negate().normalize();
 
-                // angle if vehicle going up slope
+                // rotate in other direction if vehicle going up slope
                 if (this.direction.y >= 0)
-                    angle = 2 * Math.PI - angle;
+                    angle *= -1;
 
+                // pitch
                 this.rotation.x = angle;
 
                 if (this.normalDebug)
@@ -199,6 +200,11 @@ export default class Vehicle {
             if (handledCollision && handledCheckpoint)
                 return;
         }
+
+        // if the vehicle is airborne, rotate it back to be
+        // perpendicular to the y axis
+        if (!handledCollision) 
+            this.rotation.x *= 0.99;
     }
 
     handleVehicleMovement(keysPressed: IControls, dt: number) {
