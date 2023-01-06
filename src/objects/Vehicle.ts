@@ -11,7 +11,6 @@ export default class Vehicle {
     manualCamera: boolean = false;
 
     position: THREE.Vector3;
-    checkpoint: ICheckpoint;
     direction: THREE.Vector3;
     rotation: THREE.Euler;
     gravity: THREE.Vector3;
@@ -32,6 +31,10 @@ export default class Vehicle {
 
     alive: boolean;
     canMove: boolean;
+
+    checkpoint: ICheckpoint;
+    lastCheckpointIndex: number;
+    laps: number;
 
     directionDebug?: DebugVector;
     normalDebug?: DebugVector;
@@ -63,6 +66,9 @@ export default class Vehicle {
 
         this.alive = true;
         this.canMove = true;
+
+        this.lastCheckpointIndex = 1;
+        this.laps = 1;
     }
 
     loadGLTF(scene: THREE.Scene, data: GLTF) {
@@ -154,6 +160,8 @@ export default class Vehicle {
                     this.position.y = collision.y;
                     
                 let surfaceNormal = collisionResults[0].face.normal.clone();
+                if (this.normalDebug)
+                    this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
 
                 // ensure surfaceNormal always points upwards
                 // to prevent flipping
@@ -176,9 +184,6 @@ export default class Vehicle {
                 // pitch
                 this.rotation.x = angle;
 
-                if (this.normalDebug)
-                    this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
-
                 handledCollision = true;
             }
 
@@ -190,7 +195,22 @@ export default class Vehicle {
                     if (checkpointResult.length > 0 &&
                         checkpointResult[0].distance < directionVector.length()) {
 
-                        this.checkpoint = checkpoint;
+                        // if the last checkpoint index is less than the current,
+                        // update the last checkpoint to the current
+                        // take the modulus of the index so that the last checkpoint's
+                        // value is less than the first checkpoint
+                        // this allows checkpoints to be skipped in order to enable shortcuts
+                        if (checkpoint.index > (this.lastCheckpointIndex % track.checkpoints.length)) {
+                            if (checkpoint.index == 1) {
+                                this.laps++;
+                                document.getElementById("counter").innerHTML = 
+                                    `Lap ${this.laps.toString()}/3`;
+                            }
+                            
+                            this.lastCheckpointIndex = checkpoint.index;
+                            this.checkpoint = checkpoint;
+                        }
+
                         handledCheckpoint = true;
                         break;
                     }

@@ -6,6 +6,12 @@
     font-family: 'IBM Plex Mono', monospace;
 }
 
+#counter {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+}
+
 #timer {
     position: absolute;
     top: 5%;

@@ -52,6 +52,7 @@ interface ICheckpoint {
     mesh: THREE.Mesh;
     resetDirection: THREE.Vector3;
     resetRotation: THREE.Euler;
+    index: number;
 }
 
 interface ITrackData {

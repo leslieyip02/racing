@@ -36,7 +36,8 @@ export default class Track {
             opacity: 0
         });
 
-        for (let data of checkpointData) {
+        for (let i = 0; i < checkpointData.length; i++) {
+            let data = checkpointData[i];
             let width = data.width || 48;
             let height = data.height || 8;
 
@@ -47,10 +48,12 @@ export default class Track {
             mesh.setRotationFromEuler(data.resetRotation);
             scene.add(mesh);
             
+            // checkpoint index is 1-based index for modular arithmetic
             let checkpoint: ICheckpoint = {
                 mesh: mesh,
                 resetDirection: data.resetDirection,
-                resetRotation: data.resetRotation
+                resetRotation: data.resetRotation,
+                index: i + 1
             }
 
             this.checkpoints.push(checkpoint);
