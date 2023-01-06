@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@1,500&display=swap');
+
+#dashboard {
+    font-size: 5vh;
+    color: #ffffff;
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+#timer {
+    position: absolute;
+    top: 5%;
+    right: 5%;
+}

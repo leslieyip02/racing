@@ -204,6 +204,15 @@ export default class Track {
             return;
 
         this.elapsedTime += dt;
+
+        let minutes = this.elapsedTime / 60000;
+        let seconds = (this.elapsedTime % 60000) / 1000;
+        let centiseconds = (this.elapsedTime / 10) % 100;
+
+        let timeUnitStrings = [minutes, seconds, centiseconds]
+            .map(t => Math.floor(t).toString().padStart(2, "0"));
+
+        document.getElementById("timer").innerHTML = timeUnitStrings.join(":");
         
         for (let platform of this.movingPlatforms) {
             let time = (this.elapsedTime + platform.phase) % platform.period;
