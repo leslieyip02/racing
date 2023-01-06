@@ -150,19 +150,18 @@ export default class GameScene extends THREE.Scene {
             cameraGroup.add(this.camera, "fov", 0, 120);
             cameraGroup.add(this.camera, "zoom", 0, 1);
             cameraGroup.add(vehicle, "manualCamera");
-            cameraGroup.open();
     
             const vehicleGroup = this.debugger.addFolder("Vehicle");
             vehicleGroup.add(vehicle.position, "x", -100, 100);
             vehicleGroup.add(vehicle.position, "y", -100, 100);
             vehicleGroup.add(vehicle.position, "z", -100, 100);
-            vehicleGroup.open();
     
             const filterGroup = this.debugger.addFolder("Filter");
             filterGroup.add(this.filter, "strength", 0.0, 100.0);
             filterGroup.add(this.filter, "radius", 0.0, 5.0);
             filterGroup.add(this.filter, "threshold", 0.0, 1.0);
-            filterGroup.open();
+
+            this.debugger.close();
         }
     }
 
