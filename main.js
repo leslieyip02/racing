@@ -162,17 +162,15 @@ class GameScene extends THREE.Scene {
             cameraGroup.add(this.camera, "fov", 0, 120);
             cameraGroup.add(this.camera, "zoom", 0, 1);
             cameraGroup.add(vehicle, "manualCamera");
-            cameraGroup.open();
             const vehicleGroup = this.debugger.addFolder("Vehicle");
             vehicleGroup.add(vehicle.position, "x", -100, 100);
             vehicleGroup.add(vehicle.position, "y", -100, 100);
             vehicleGroup.add(vehicle.position, "z", -100, 100);
-            vehicleGroup.open();
             const filterGroup = this.debugger.addFolder("Filter");
             filterGroup.add(this.filter, "strength", 0.0, 100.0);
             filterGroup.add(this.filter, "radius", 0.0, 5.0);
             filterGroup.add(this.filter, "threshold", 0.0, 1.0);
-            filterGroup.open();
+            this.debugger.close();
         }
     }
     setupControls(isTouchDevice) {
@@ -57365,7 +57363,8 @@ class Track {
             transparent: !debug,
             opacity: 0
         });
-        for (let data of checkpointData) {
+        for (let i = 0; i < checkpointData.length; i++) {
+            let data = checkpointData[i];
             let width = data.width || 48;
             let height = data.height || 8;
             let geometry = new THREE.PlaneGeometry(width, height);
@@ -57373,10 +57372,12 @@ class Track {
             mesh.position.set(data.position.x, data.position.y, data.position.z);
             mesh.setRotationFromEuler(data.resetRotation);
             scene.add(mesh);
+            // checkpoint index is 1-based index for modular arithmetic
             let checkpoint = {
                 mesh: mesh,
                 resetDirection: data.resetDirection,
-                resetRotation: data.resetRotation
+                resetRotation: data.resetRotation,
+                index: i + 1
             };
             this.checkpoints.push(checkpoint);
         }
@@ -57481,6 +57482,12 @@ class Track {
         if (!dt)
             return;
         this.elapsedTime += dt;
+        let minutes = this.elapsedTime / 60000;
+        let seconds = (this.elapsedTime % 60000) / 1000;
+        let centiseconds = (this.elapsedTime / 10) % 100;
+        let timeUnitStrings = [minutes, seconds, centiseconds]
+            .map(t => Math.floor(t).toString().padStart(2, "0"));
+        document.getElementById("timer").innerHTML = timeUnitStrings.join(":");
         for (let platform of this.movingPlatforms) {
             let time = (this.elapsedTime + platform.phase) % platform.period;
             let phase = 2 * Math.PI * (time / platform.period);
@@ -57675,6 +57682,8 @@ class Vehicle {
         this.render(scene, vehicleData.modelPath, debug);
         this.alive = true;
         this.canMove = true;
+        this.lastCheckpointIndex = 1;
+        this.laps = 1;
     }
     loadGLTF(scene, data) {
         this.model = data.scene;
@@ -57746,6 +57755,8 @@ class Vehicle {
                 if (this.position.y < collision.y)
                     this.position.y = collision.y;
                 let surfaceNormal = collisionResults[0].face.normal.clone();
+                if (this.normalDebug)
+                    this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
                 // ensure surfaceNormal always points upwards
                 // to prevent flipping
                 if (surfaceNormal.y < 0)
@@ -57757,12 +57768,11 @@ class Vehicle {
                 // set the direction to be along the track
                 this.direction = normalAlongDirection.cross(planeNormal)
                     .negate().normalize();
-                // angle if vehicle going up slope
+                // rotate in other direction if vehicle going up slope
                 if (this.direction.y >= 0)
-                    angle = 2 * Math.PI - angle;
+                    angle *= -1;
+                // pitch
                 this.rotation.x = angle;
-                if (this.normalDebug)
-                    this.normalDebug.update(surfaceNormal.clone(), this.position.clone());
                 handledCollision = true;
             }
             // use raycasting to handle collision with checkpoint planes too
@@ -57771,7 +57781,20 @@ class Vehicle {
                     let checkpointResult = ray.intersectObject(checkpoint.mesh);
                     if (checkpointResult.length > 0 &&
                         checkpointResult[0].distance < directionVector.length()) {
-                        this.checkpoint = checkpoint;
+                        // if the last checkpoint index is less than the current,
+                        // update the last checkpoint to the current
+                        // take the modulus of the index so that the last checkpoint's
+                        // value is less than the first checkpoint
+                        // this allows checkpoints to be skipped in order to enable shortcuts
+                        if (checkpoint.index > (this.lastCheckpointIndex % track.checkpoints.length)) {
+                            if (checkpoint.index == 1) {
+                                this.laps++;
+                                document.getElementById("counter").innerHTML =
+                                    `Lap ${this.laps.toString()}/3`;
+                            }
+                            this.lastCheckpointIndex = checkpoint.index;
+                            this.checkpoint = checkpoint;
+                        }
                         handledCheckpoint = true;
                         break;
                     }
@@ -57780,6 +57803,10 @@ class Vehicle {
             if (handledCollision && handledCheckpoint)
                 return;
         }
+        // if the vehicle is airborne, rotate it back to be
+        // perpendicular to the y axis
+        if (!handledCollision)
+            this.rotation.x *= 0.99;
     }
     handleVehicleMovement(keysPressed, dt) {
         if (!this.canMove)

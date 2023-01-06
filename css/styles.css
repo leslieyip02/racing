@@ -1,4 +1,5 @@
 @import "./curtain.css";
+@import "./dashboard.css";
 @import "./joystick.css";
 
 html, body, canvas {
