@@ -173,6 +173,12 @@ export default class GameScene extends THREE.Scene {
             this.keysPressed[e.key.toLowerCase()] = false;
         });
 
+        window.addEventListener("wheel", (e: WheelEvent) => {
+            e.preventDefault();
+
+            this.keysPressed[`arrow${e.deltaY < 0 ? "up" : "down"}`] = true;
+        });
+
         // hide joystick if not touch device
         if (!isTouchDevice) {
             document.getElementById("joystick").style.display = "none";
@@ -190,7 +196,7 @@ export default class GameScene extends THREE.Scene {
         let y0 = 50 * vh + joystickRadius;
         
         // keep track of all keys so they can be reset in the touch handler
-        let controlKeys = ["w", "a", "s", "d", "shift"];
+        let controlKeys = ["w", "a", "s", "d", "shift", "arrowup", "arrowdown"];
 
         document.getElementById("knob").addEventListener("touchmove", (e: TouchEvent) => {
             e.preventDefault();

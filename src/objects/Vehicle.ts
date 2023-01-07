@@ -16,12 +16,13 @@ export default class Vehicle {
     turnRate: number;
     maxRoll: number;
     defaultGravity: THREE.Vector3;
-
+    
     position: THREE.Vector3;
     direction: THREE.Vector3;
     rotation: THREE.Euler;
     gravity: THREE.Vector3;
     velocity: THREE.Vector3;
+    thrust: number;
 
     width: number;
     height: number;
@@ -61,6 +62,7 @@ export default class Vehicle {
         this.rotation = rotation;
         this.gravity = this.defaultGravity;
         this.velocity = new THREE.Vector3(0, 0, 0);
+        this.thrust = 0;
 
         this.width = vehicleData.width;
         this.height = vehicleData.height;
@@ -235,15 +237,26 @@ export default class Vehicle {
         if (!this.canMove)
             return;
 
+        // thrust determines the extent of acceleration
+        if (keysPressed["arrowup"]) {
+            this.thrust = Math.min(this.thrust + 0.05, 1);
+            keysPressed["arrowup"] = false;
+        }
+        
+        if (keysPressed["arrowdown"]) {
+            this.thrust = Math.max(this.thrust - 0.05, 0);
+            keysPressed["arrowdown"] = false;
+        }
+
         // acceleration
         if (keysPressed["w"])
             this.velocity.add(this.direction.clone()
-                .multiplyScalar(this.acceleration * dt));
+                .multiplyScalar(this.acceleration * this.thrust * dt));
 
         // deceleration
         if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
-                .multiplyScalar(this.deceleration * dt));
+                .multiplyScalar(this.deceleration * this.thrust * dt));
 
         // turning
         if (keysPressed["d"]) {
