@@ -197,15 +197,18 @@ export default class GameScene extends THREE.Scene {
         
         // keep track of all keys so they can be reset in the touch handler
         let controlKeys = ["w", "a", "s", "d", "shift", "arrowup", "arrowdown"];
-
-        document.getElementById("knob").addEventListener("touchmove", (e: TouchEvent) => {
+        
+        let knob = document.getElementById("knob");
+        knob.addEventListener("touchmove", (e: TouchEvent) => {
             e.preventDefault();
             
             for (let key of controlKeys)
                 this.keysPressed[key] = false;
 
-            let dx = e.touches[0].clientX - x0;
-            let dy = e.touches[0].clientY - y0;
+            let knobTouch = e.targetTouches[0];
+
+            let dx = knobTouch.clientX - x0;
+            let dy = knobTouch.clientY - y0;
 
             // mimic wasd controls with the joystick
             if (dy < -joystickThreshold)
@@ -233,14 +236,29 @@ export default class GameScene extends THREE.Scene {
         }, false);
 
         // reset knob position
-        document.getElementById("knob").addEventListener("touchend", () => {
+        knob.addEventListener("touchend", () => {
             for (let key of controlKeys)
                 this.keysPressed[key] = false;
 
             document.getElementById("knob").style.top = "5vw";
             document.getElementById("knob").style.left = "5vw";
         }, false);
+        
+
+        // set up touch thrust gauge
+        let gauge = document.getElementById("gauge");
+        let gaugeFill = document.getElementById("gauge-fill");
+        gauge.addEventListener("touchmove", (e: TouchEvent) => {
+            e.preventDefault();
+
+            let gaugeTouch = e.targetTouches[0];
+
+            let currentHeight = 50 * vh + parseInt(gaugeFill.style.top) * vh;
+            let direction = gaugeTouch.clientY <= currentHeight ? "up" : "down";
+            this.keysPressed[`arrow${direction}`] = true;
+        });
     }
+
 
     update(dt?: number) {
         for (let vehicle of this.vehicles)
