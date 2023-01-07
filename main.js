@@ -168,8 +168,6 @@ class GameScene extends THREE.Scene {
             filterGroup.add(this.filter, "threshold", 0.0, 1.0);
             this.debugger.close();
         }
-        // hide address bar for mobile
-        window.addEventListener("load", () => document.documentElement.requestFullscreen());
     }
     setupControls(isTouchDevice) {
         // set up keyboard controls
