@@ -74,6 +74,7 @@ interface IVehicleData {
     friction: number;
     turnRate: number;
     maxRoll: number;
+    defaultGravity?: THREE.Vector3;
     
     width: number;
     height: number;

@@ -4,23 +4,22 @@ import { IControls, ICheckpoint, IVehicleData } from "../utils/interfaces";
 import { DebugVector } from "../utils/debug";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-let defaultGravity = new THREE.Vector3(0, -0.012, 0);
-
 export default class Vehicle {
     camera: THREE.PerspectiveCamera;
     manualCamera: boolean = false;
-
-    position: THREE.Vector3;
-    direction: THREE.Vector3;
-    rotation: THREE.Euler;
-    gravity: THREE.Vector3;
-    velocity: THREE.Vector3;
 
     acceleration: number;
     deceleration: number;
     friction: number;
     turnRate: number;
     maxRoll: number;
+    defaultGravity: THREE.Vector3;
+
+    position: THREE.Vector3;
+    direction: THREE.Vector3;
+    rotation: THREE.Euler;
+    gravity: THREE.Vector3;
+    velocity: THREE.Vector3;
 
     width: number;
     height: number;
@@ -46,17 +45,19 @@ export default class Vehicle {
 
         this.camera = camera;
 
-        this.position = position;
-        this.direction = direction;
-        this.rotation = rotation;
-        this.gravity = defaultGravity;
-        this.velocity = new THREE.Vector3(0, 0, 0);
-
         this.acceleration = vehicleData.acceleration;
         this.deceleration = vehicleData.deceleration;
         this.friction = vehicleData.friction;
         this.turnRate = vehicleData.turnRate;
         this.maxRoll = vehicleData.maxRoll;
+        this.defaultGravity = vehicleData.defaultGravity || 
+            new THREE.Vector3(0, -0.012, 0);
+
+        this.position = position;
+        this.direction = direction;
+        this.rotation = rotation;
+        this.gravity = this.defaultGravity;
+        this.velocity = new THREE.Vector3(0, 0, 0);
 
         this.width = vehicleData.width;
         this.height = vehicleData.height;
@@ -349,7 +350,7 @@ export default class Vehicle {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
     
-        this.gravity = defaultGravity;
+        this.gravity = this.defaultGravity;
         this.handleTrackCollision(track);        
         this.handleVehicleMovement(keysPressed, dt);
 
