@@ -11,7 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const GameScene_1 = __importDefault(__webpack_require__(1));
 // set up scene
-let scene = new GameScene_1.default(true);
+let scene = new GameScene_1.default();
 // keep track of time
 let currentTime = 0;
 // loops updates
@@ -168,6 +168,8 @@ class GameScene extends THREE.Scene {
             filterGroup.add(this.filter, "threshold", 0.0, 1.0);
             this.debugger.close();
         }
+        // hide address bar for mobile
+        window.addEventListener("load", () => setTimeout(() => window.scrollTo(0, 1), 0));
     }
     setupControls(isTouchDevice) {
         // set up keyboard controls
