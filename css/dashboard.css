@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@1,300&display=swap");
+
 #dashboard {
     font-size: 5vh;
     color: #ffffff;
@@ -7,12 +8,12 @@
 
 #counter {
     position: absolute;
-    top: 5%;
-    left: 5%;
+    top: 5vh;
+    left: 5vw;
 }
 
 #timer {
     position: absolute;
-    top: 5%;
-    right: 5%;
+    top: 5vh;
+    right: 5vw;
 }
