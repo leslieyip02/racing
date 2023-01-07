@@ -169,7 +169,7 @@ class GameScene extends THREE.Scene {
             this.debugger.close();
         }
         // hide address bar for mobile
-        window.addEventListener("load", () => setTimeout(() => window.scrollTo(0, 1), 0));
+        window.addEventListener("load", () => document.documentElement.requestFullscreen());
     }
     setupControls(isTouchDevice) {
         // set up keyboard controls
