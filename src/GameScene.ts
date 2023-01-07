@@ -132,12 +132,8 @@ export default class GameScene extends THREE.Scene {
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
 
-        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
-        // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
         let vehicle = new Vehicle(this, this.camera, speeder, this.track.startPoint,
-            this.track.startDirection, this.track.startRotation, debug);
+            this.track.startDirection, this.track.startRotation, debug, this.orbitals);
         
         this.vehicles = [];
         this.vehicles.push(vehicle);

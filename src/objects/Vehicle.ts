@@ -1,12 +1,14 @@
 import * as THREE from "three";
 import Track from "./Track";
-import { IControls, ICheckpoint, IVehicleData } from "../utils/interfaces";
-import { DebugVector } from "../utils/debug";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { DebugVector } from "../utils/debug";
+import { IControls, ICheckpoint, IVehicleData } from "../utils/interfaces";
 
 export default class Vehicle {
     camera: THREE.PerspectiveCamera;
     manualCamera: boolean = false;
+    orbitals?: OrbitControls;
 
     acceleration: number;
     deceleration: number;
@@ -41,9 +43,10 @@ export default class Vehicle {
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera,
         vehicleData: IVehicleData, position: THREE.Vector3, direction: THREE.Vector3,
-        rotation: THREE.Euler, debug?: boolean) {
+        rotation: THREE.Euler, debug?: boolean, orbitals?: OrbitControls) {
 
         this.camera = camera;
+        this.orbitals = orbitals;
 
         this.acceleration = vehicleData.acceleration;
         this.deceleration = vehicleData.deceleration;
@@ -381,8 +384,14 @@ export default class Vehicle {
         }
         
         if (!this.manualCamera) {
+            if (this.orbitals)
+                this.orbitals.enabled = false;
+            
             let forward = !keysPressed["r"];
             this.handleCameraMovement(forward, this.alive);
+        } else {
+            if (this.orbitals)
+                this.orbitals.enabled = true;
         }
     }
 }
