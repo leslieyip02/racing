@@ -1,0 +1,24 @@
+:root {
+    --gauge-height: 40vh;
+    --gauge-width: 5vw;
+}
+
+#gauge {
+    position: absolute;
+    top: 50vh;
+    right: 15vw;
+
+    height: var(--gauge-height);
+    width: var(--gauge-width);
+    background-color: transparent;
+    border: 2px solid #ffffff;
+}
+
+#gauge-fill {
+    position: inherit;
+    top: var(--gauge-height);
+
+    height: 0;
+    width: var(--gauge-width);
+    background-color: #4bff00;
+}

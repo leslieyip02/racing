@@ -148,11 +148,7 @@ class GameScene extends THREE.Scene {
         this.track = new objects_1.Track(this, trackData, debug);
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
-        // let vehicle = new Vehicle(this, this.camera, bike, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
-        // let vehicle = new Vehicle(this, this.camera, mustang, this.track.startPoint,
-        //     this.track.startDirection, this.track.startRotation, debug);
-        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeder, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug);
+        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeder, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug, this.orbitals);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         if (debug) {
@@ -182,6 +178,10 @@ class GameScene extends THREE.Scene {
         window.addEventListener("keyup", (e) => {
             this.keysPressed[e.key.toLowerCase()] = false;
         });
+        window.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            this.keysPressed[`arrow${e.deltaY < 0 ? "up" : "down"}`] = true;
+        });
         // hide joystick if not touch device
         if (!isTouchDevice) {
             document.getElementById("joystick").style.display = "none";
@@ -196,13 +196,15 @@ class GameScene extends THREE.Scene {
         let x0 = 10 * vw + joystickRadius;
         let y0 = 50 * vh + joystickRadius;
         // keep track of all keys so they can be reset in the touch handler
-        let controlKeys = ["w", "a", "s", "d", "shift"];
-        document.getElementById("knob").addEventListener("touchmove", (e) => {
+        let controlKeys = ["w", "a", "s", "d", "shift", "arrowup", "arrowdown"];
+        let knob = document.getElementById("knob");
+        knob.addEventListener("touchmove", (e) => {
             e.preventDefault();
             for (let key of controlKeys)
                 this.keysPressed[key] = false;
-            let dx = e.touches[0].clientX - x0;
-            let dy = e.touches[0].clientY - y0;
+            let knobTouch = e.targetTouches[0];
+            let dx = knobTouch.clientX - x0;
+            let dy = knobTouch.clientY - y0;
             // mimic wasd controls with the joystick
             if (dy < -joystickThreshold)
                 this.keysPressed["w"] = true;
@@ -222,12 +224,22 @@ class GameScene extends THREE.Scene {
             document.getElementById("knob").style.left = left;
         }, false);
         // reset knob position
-        document.getElementById("knob").addEventListener("touchend", () => {
+        knob.addEventListener("touchend", () => {
             for (let key of controlKeys)
                 this.keysPressed[key] = false;
             document.getElementById("knob").style.top = "5vw";
             document.getElementById("knob").style.left = "5vw";
         }, false);
+        // set up touch thrust gauge
+        let gauge = document.getElementById("gauge");
+        let gaugeFill = document.getElementById("gauge-fill");
+        gauge.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            let gaugeTouch = e.targetTouches[0];
+            let currentHeight = 50 * vh + parseInt(gaugeFill.style.top) * vh;
+            let direction = gaugeTouch.clientY <= currentHeight ? "up" : "down";
+            this.keysPressed[`arrow${direction}`] = true;
+        });
     }
     update(dt) {
         for (let vehicle of this.vehicles)
@@ -57659,23 +57671,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-const debug_1 = __webpack_require__(19);
 const GLTFLoader_1 = __webpack_require__(21);
-let defaultGravity = new THREE.Vector3(0, -0.012, 0);
+const debug_1 = __webpack_require__(19);
 class Vehicle {
-    constructor(scene, camera, vehicleData, position, direction, rotation, debug) {
+    constructor(scene, camera, vehicleData, position, direction, rotation, debug, orbitals) {
         this.manualCamera = false;
         this.camera = camera;
-        this.position = position;
-        this.direction = direction;
-        this.rotation = rotation;
-        this.gravity = defaultGravity;
-        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.orbitals = orbitals;
         this.acceleration = vehicleData.acceleration;
         this.deceleration = vehicleData.deceleration;
         this.friction = vehicleData.friction;
         this.turnRate = vehicleData.turnRate;
         this.maxRoll = vehicleData.maxRoll;
+        this.defaultGravity = vehicleData.defaultGravity ||
+            new THREE.Vector3(0, -0.012, 0);
+        this.position = position;
+        this.direction = direction;
+        this.rotation = rotation;
+        this.gravity = this.defaultGravity;
+        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.thrust = 0;
         this.width = vehicleData.width;
         this.height = vehicleData.height;
         this.length = vehicleData.length;
@@ -57811,14 +57826,32 @@ class Vehicle {
     handleVehicleMovement(keysPressed, dt) {
         if (!this.canMove)
             return;
+        // thrust determines the extent of acceleration
+        if (keysPressed["arrowup"])
+            this.thrust = Math.min(this.thrust + 0.02, 1);
+        if (keysPressed["arrowdown"])
+            this.thrust = Math.max(this.thrust - 0.02, 0);
+        if (keysPressed["arrowup"] || keysPressed["arrowdown"]) {
+            let gaugeFill = document.getElementById("gauge-fill");
+            let gaugeHeight = this.thrust * 40;
+            gaugeFill.style.top = `${40 - gaugeHeight}vh`;
+            gaugeFill.style.height = `${gaugeHeight}vh`;
+            // create a gradient from green to yellow to red based on thrust
+            // clamp values between #4bff00 and #ff4b00
+            let red = this.thrust >= 0.5 ? 255 : Math.floor(this.thrust * 2 * 180) + 75;
+            let green = this.thrust <= 0.5 ? 255 : Math.floor((1 - this.thrust) * 2 * 180) + 75;
+            gaugeFill.style.backgroundColor = `#${red.toString(16)}${green.toString(16)}00`;
+            keysPressed["arrowup"] = false;
+            keysPressed["arrowdown"] = false;
+        }
         // acceleration
         if (keysPressed["w"])
             this.velocity.add(this.direction.clone()
-                .multiplyScalar(this.acceleration * dt));
+                .multiplyScalar(this.acceleration * this.thrust * dt));
         // deceleration
         if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
-                .multiplyScalar(this.deceleration * dt));
+                .multiplyScalar(this.deceleration * this.thrust * dt));
         // turning
         if (keysPressed["d"]) {
             let angle = -this.turnRate * dt;
@@ -57901,7 +57934,7 @@ class Vehicle {
     update(keysPressed, track, dt) {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
-        this.gravity = defaultGravity;
+        this.gravity = this.defaultGravity;
         this.handleTrackCollision(track);
         this.handleVehicleMovement(keysPressed, dt);
         // reset vehicle to last checkpoint if it falls out of bounds        
@@ -57926,8 +57959,14 @@ class Vehicle {
             }
         }
         if (!this.manualCamera) {
+            if (this.orbitals)
+                this.orbitals.enabled = false;
             let forward = !keysPressed["r"];
             this.handleCameraMovement(forward, this.alive);
+        }
+        else {
+            if (this.orbitals)
+                this.orbitals.enabled = true;
         }
     }
 }
@@ -62859,10 +62898,34 @@ exports["default"] = mustang;
 
 /***/ }),
 /* 32 */
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
 let speeder = {
     modelPath: "./assets/models/speeder.glb",
     acceleration: 0.00125,
@@ -62870,6 +62933,7 @@ let speeder = {
     friction: 0.98,
     turnRate: 0.0006,
     maxRoll: 0.3,
+    defaultGravity: new THREE.Vector3(0, -0.01, 0),
     width: 1,
     height: 1.2,
     length: 3.4
