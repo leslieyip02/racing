@@ -9,7 +9,7 @@ import { Satellite, Track, Vehicle } from "./objects/objects";
 import { randomVector } from "./utils/functions";
 import { IControls } from "./utils/interfaces";
 import { tracks, testTracks } from "../data/tracks/tracks";
-import { bike, mustang, speeder1 } from "../data/vehicles/vehicles";
+import * as vehicles from "../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -132,7 +132,7 @@ export default class GameScene extends THREE.Scene {
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
 
-        let vehicle = new Vehicle(this, this.camera, speeder1, this.track.startPoint,
+        let vehicle = new Vehicle(this, this.camera, vehicles.speeder2, this.track.startPoint,
             this.track.startDirection, this.track.startRotation, debug, this.orbitals);
         
         this.vehicles = [];
@@ -151,7 +151,7 @@ export default class GameScene extends THREE.Scene {
             vehicleGroup.add(vehicle.position, "x", -100, 100);
             vehicleGroup.add(vehicle.position, "y", -100, 100);
             vehicleGroup.add(vehicle.position, "z", -100, 100);
-    
+
             const filterGroup = this.debugger.addFolder("Filter");
             filterGroup.add(this.filter, "strength", 0.0, 100.0);
             filterGroup.add(this.filter, "radius", 0.0, 5.0);
