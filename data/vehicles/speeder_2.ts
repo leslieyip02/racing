@@ -12,7 +12,7 @@ let speeder_2: IVehicleData = {
     defaultGravity: new THREE.Vector3(0, -0.01, 0),
 
     width: 1.2,
-    height: 1,
+    height: 2,
     length: 3
 }
 
