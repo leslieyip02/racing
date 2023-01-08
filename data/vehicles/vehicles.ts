@@ -1,10 +1,10 @@
 import bike from "./bike";
 import mustang from "./mustang";
-import speeder1 from "./speeder1";
-import speeder2 from "./speeder2";
-import speeder3 from "./speeder3";
+import speeder_1 from "./speeder_1";
+import speeder_2 from "./speeder_2";
+import speeder_3 from "./speeder_3";
 
-let speeders = [speeder1, speeder2, speeder3];
+let speeders = [speeder_1, speeder_2, speeder_3];
 
 export {
     bike,
