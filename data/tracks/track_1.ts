@@ -72,12 +72,12 @@ let track_1: ITrackData = {
         {
             shapes: [[[15, -0.4], [16, -0.4]], [[7, -0.4], [8, -0.4]],
                 [[0.4, 15], [0.4, 16]], [[0.4, 7], [0.4, 8]], [[15, 0.4], [16, 0.4]]],
-            material: new THREE.MeshLambertMaterial({ color: 0xdddddd })
+            material: new THREE.MeshLambertMaterial({ color: 0xcccccc })
         },
         {
             shapes: [[[-15, -0.4], [-16, -0.4]], [[-7, -0.4], [-8, -0.4]],
                 [[0.4, -15], [0.4, -16]], [[0.4, -7], [0.4, -8]], [[-15, 0.4], [-16, 0.4]]],
-            material: new THREE.MeshStandardMaterial({ color: 0xdddddd })
+            material: new THREE.MeshStandardMaterial({ color: 0xcccccc })
         },
         {
             shapes: [[[15, -0.4], [-15, -0.4]], [[7, -0.4], [-7, -0.4]],
