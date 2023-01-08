@@ -11,7 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const GameScene_1 = __importDefault(__webpack_require__(1));
 // set up scene
-let scene = new GameScene_1.default();
+let scene = new GameScene_1.default(true);
 // keep track of time
 let currentTime = 0;
 // loops updates
@@ -149,7 +149,7 @@ class GameScene extends THREE.Scene {
         this.track = new objects_1.Track(this, trackData, debug);
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
-        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeder2, this.track.startPoint, this.track.startDirection, this.track.startRotation, debug, this.orbitals);
+        let vehicle = new objects_1.Vehicle(this, this.camera, vehicles_1.speeders[2], this.track.startPoint, this.track.startDirection, this.track.startRotation, debug, this.orbitals);
         this.vehicles = [];
         this.vehicles.push(vehicle);
         if (debug) {
@@ -62850,15 +62850,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.speeder2 = exports.speeder1 = exports.mustang = exports.bike = void 0;
-var bike_1 = __webpack_require__(30);
-Object.defineProperty(exports, "bike", ({ enumerable: true, get: function () { return __importDefault(bike_1).default; } }));
-var mustang_1 = __webpack_require__(31);
-Object.defineProperty(exports, "mustang", ({ enumerable: true, get: function () { return __importDefault(mustang_1).default; } }));
-var speeder1_1 = __webpack_require__(32);
-Object.defineProperty(exports, "speeder1", ({ enumerable: true, get: function () { return __importDefault(speeder1_1).default; } }));
-var speeder2_1 = __webpack_require__(33);
-Object.defineProperty(exports, "speeder2", ({ enumerable: true, get: function () { return __importDefault(speeder2_1).default; } }));
+exports.speeders = exports.mustang = exports.bike = void 0;
+const bike_1 = __importDefault(__webpack_require__(30));
+exports.bike = bike_1.default;
+const mustang_1 = __importDefault(__webpack_require__(31));
+exports.mustang = mustang_1.default;
+const speeder_1_1 = __importDefault(__webpack_require__(32));
+const speeder_2_1 = __importDefault(__webpack_require__(33));
+const speeder_3_1 = __importDefault(__webpack_require__(34));
+let speeders = [speeder_1_1.default, speeder_2_1.default, speeder_3_1.default];
+exports.speeders = speeders;
 
 
 /***/ }),
@@ -62931,8 +62932,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-let speeder1 = {
-    modelPath: "./assets/models/speeder1.glb",
+let speeder_1 = {
+    modelPath: "./assets/models/speeder_1.glb",
     acceleration: 0.00125,
     deceleration: 0.0003,
     friction: 0.98,
@@ -62940,10 +62941,10 @@ let speeder1 = {
     maxRoll: 0.3,
     defaultGravity: new THREE.Vector3(0, -0.01, 0),
     width: 1,
-    height: 1.2,
+    height: 2,
     length: 3.4
 };
-exports["default"] = speeder1;
+exports["default"] = speeder_1;
 
 
 /***/ }),
@@ -62976,8 +62977,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const THREE = __importStar(__webpack_require__(2));
-let speeder2 = {
-    modelPath: "./assets/models/speeder2.glb",
+let speeder_2 = {
+    modelPath: "./assets/models/speeder_2.glb",
     acceleration: 0.0012,
     deceleration: 0.0006,
     friction: 0.98,
@@ -62985,10 +62986,55 @@ let speeder2 = {
     maxRoll: 0.4,
     defaultGravity: new THREE.Vector3(0, -0.01, 0),
     width: 1.2,
-    height: 1,
+    height: 2,
     length: 3
 };
-exports["default"] = speeder2;
+exports["default"] = speeder_2;
+
+
+/***/ }),
+/* 34 */
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const THREE = __importStar(__webpack_require__(2));
+let speeder_3 = {
+    modelPath: "./assets/models/speeder_3.glb",
+    acceleration: 0.0013,
+    deceleration: 0.0010,
+    friction: 0.98,
+    turnRate: 0.0007,
+    maxRoll: 0.3,
+    defaultGravity: new THREE.Vector3(0, -0.01, 0),
+    width: 1.4,
+    height: 2,
+    length: 3.2
+};
+exports["default"] = speeder_3;
 
 
 /***/ })
