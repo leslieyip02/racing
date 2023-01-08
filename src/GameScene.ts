@@ -124,7 +124,8 @@ export default class GameScene extends THREE.Scene {
         this.composer.addPass(this.filter);
 
         // set objects in the scene
-        this.add(new THREE.AmbientLight(0xffffff));
+        let light = new THREE.AmbientLight(0xffffff, 1);
+        this.add(light);
 
         let trackData = tracks[0];
         this.track = new Track(this, trackData, debug);
@@ -151,6 +152,9 @@ export default class GameScene extends THREE.Scene {
             vehicleGroup.add(vehicle.position, "x", -100, 100);
             vehicleGroup.add(vehicle.position, "y", -100, 100);
             vehicleGroup.add(vehicle.position, "z", -100, 100);
+            
+            const lightingGroup = this.debugger.addFolder("Lighting");
+            lightingGroup.add(light, "intensity", 0, 2.0);
 
             const filterGroup = this.debugger.addFolder("Filter");
             filterGroup.add(this.filter, "strength", 0.0, 100.0);
