@@ -27,8 +27,16 @@ function debugLine(scene: THREE.Scene, points: Array<THREE.Vector3>,
     scene.add(line);
 }
 
-// dynamic debug classes that require updates
-class DebugVector {    
+function debugVector(scene: THREE.Scene, vector: THREE.Vector3, 
+    origin: THREE.Vector3, length: number = 3, 
+    color: number = 0xffff00): void {
+
+    let helper = new THREE.ArrowHelper(vector, origin, length, color);
+    scene.add(helper);
+}
+
+// dynamic debug class that require updates
+class DynamicDebugVector {    
     vector: THREE.Vector3;
     origin: THREE.Vector3;
     helper: THREE.ArrowHelper;
@@ -56,8 +64,9 @@ class DebugVector {
 }
 
 export {
-    debugAxes, 
+    debugAxes,
     debugPoints,
-    debugLine, 
-    DebugVector
+    debugLine,
+    debugVector,
+    DynamicDebugVector
 }

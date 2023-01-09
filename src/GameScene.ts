@@ -5,10 +5,10 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry"
-import { Satellite, Track, Vehicle } from "./objects/objects";
+import { CPU, Player, Satellite, Track, Vehicle } from "./objects/objects";
 import { randomVector } from "./utils/functions";
 import { IControls } from "./utils/interfaces";
-import { tracks, testTracks } from "../data/tracks/tracks";
+import { tracks } from "../data/tracks/tracks";
 import { speeders } from "../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
@@ -27,8 +27,10 @@ export default class GameScene extends THREE.Scene {
     keysPressed: IControls;
 
     track: Track;
-    vehicles: Array<Vehicle>;
     satellites: Array<Satellite>;
+    
+    player: Player;
+    CPUs: Array<Vehicle>;
 
     constructor(debug?: boolean) {
         super();
@@ -133,11 +135,12 @@ export default class GameScene extends THREE.Scene {
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
 
-        let vehicle = new Vehicle(this, this.camera, speeders[2], this.track.startPoint,
-            this.track.startDirection, this.track.startRotation, debug, this.orbitals);
+        this.player = new Player(this, this.camera, speeders[0], 
+            this.track.startPoint.clone(), this.track.startDirection.clone(), 
+            this.track.startRotation.clone(), debug, this.orbitals);
         
-        this.vehicles = [];
-        this.vehicles.push(vehicle);
+        this.CPUs = [new CPU(this, speeders[0], this.track.startPoint.clone(),
+            this.track.startDirection.clone(), this.track.startRotation.clone(), debug)]
 
         if (debug) {
             // set up debugger
@@ -146,12 +149,12 @@ export default class GameScene extends THREE.Scene {
             const cameraGroup = this.debugger.addFolder("Camera");
             cameraGroup.add(this.camera, "fov", 0, 120);
             cameraGroup.add(this.camera, "zoom", 0, 1);
-            cameraGroup.add(vehicle, "manualCamera");
+            cameraGroup.add(this.player, "manualCamera");
     
             const vehicleGroup = this.debugger.addFolder("Vehicle");
-            vehicleGroup.add(vehicle.position, "x", -100, 100);
-            vehicleGroup.add(vehicle.position, "y", -100, 100);
-            vehicleGroup.add(vehicle.position, "z", -100, 100);
+            vehicleGroup.add(this.player.position, "x", -100, 100);
+            vehicleGroup.add(this.player.position, "y", -100, 100);
+            vehicleGroup.add(this.player.position, "z", -100, 100);
             
             const lightingGroup = this.debugger.addFolder("Lighting");
             lightingGroup.add(light, "intensity", 0, 2.0);
@@ -178,8 +181,6 @@ export default class GameScene extends THREE.Scene {
         });
 
         window.addEventListener("wheel", (e: WheelEvent) => {
-            e.preventDefault();
-
             this.keysPressed[`arrow${e.deltaY < 0 ? "up" : "down"}`] = true;
         });
 
@@ -265,8 +266,10 @@ export default class GameScene extends THREE.Scene {
 
 
     update(dt?: number) {
-        for (let vehicle of this.vehicles)
-            vehicle.update(this.keysPressed, this.track, dt);
+        this.player.update(this.track, dt, this.keysPressed);
+
+        for (let cpu of this.CPUs)
+            cpu.update(this.track, dt);
 
         if (this.satellites)
             for (let satellite of this.satellites)

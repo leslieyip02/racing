@@ -56,7 +56,8 @@ let track_1: ITrackData = {
             extrudeShapeIndex: 2,
             ellipse: true,
             radius: [75, 75],
-            angles: [Math.PI / 2, 3 * Math.PI / 2]
+            angles: [-Math.PI / 2, -3 * Math.PI / 2],
+            clockwise: true
         },
         {
             points: [[-400, 24, 0], [-320, 24, 0], [-240, 16, 0], [-160, 32, 0]],

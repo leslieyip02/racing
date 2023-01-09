@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { toVectorArray, toShapeArray } from "../utils/functions";
 import { ICurveData, ILayerData, IPlatform, ICheckpointData, ICheckpoint, ITrackData } from "../utils/interfaces";
-import { debugAxes, debugPoints, debugLine } from "../utils/debug";
+import { debugAxes, debugPoints, debugLine, debugVector } from "../utils/debug";
 
 export default class Track {    
     startPoint: THREE.Vector3;
@@ -13,12 +13,18 @@ export default class Track {
     movingPlatforms: Array<IPlatform>;
     elapsedTime: number;
 
+    pathPoints: Array<THREE.Vector3>;
+    pathVectors: Array<THREE.Vector3>;
+
     constructor(scene: THREE.Scene, trackData: ITrackData, debug?: boolean) {
         this.startPoint = trackData.startPoint;
         this.startDirection = trackData.startDirection;
         this.startRotation = trackData.startRotation;
 
         this.elapsedTime = 0;
+
+        this.pathPoints = [];
+        this.pathVectors = [];
 
         this.createCheckpoints(trackData.checkpoints, scene, debug);
         this.render(scene, trackData, debug);
@@ -60,19 +66,43 @@ export default class Track {
         }
     }
 
+    // store direction vectors for each point for CPU player
+    createPathVectors(points: Array<THREE.Vector3>, divisions: number,
+        debug?: boolean, scene?: THREE.Scene) {
+
+        for (let i = 0; i < divisions - 1; i++) {
+            let p1 = points[i].clone();
+            let p2 = points[i + 1].clone();
+
+            this.pathPoints.push(p1.clone());
+
+            let directionVector = p2.clone().sub(p1.clone());
+            // directionVector.y = 0;
+            directionVector.normalize();
+            this.pathVectors.push(directionVector);
+
+            if (debug) {
+                let origin = p1.clone();
+                origin.y += 0.5;
+                debugVector(scene, directionVector, origin, 2, 0x00ff00);
+            }
+        }
+    }
+
     // creates a catmull-rom spline
-    createCatmullRom(points: Array<THREE.Vector3>, closed: boolean,
+    createCatmullRom(points: Array<THREE.Vector3>, closed: boolean, divisions: number,
         extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
         material: THREE.Material, debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
-
-        if (debug && scene) 
-            debugPoints(scene, points);
             
+        if (debug && scene)
+            debugPoints(scene, points, 0x00ffff);
+
         let curve = new THREE.CatmullRomCurve3(points, closed);
-        points = curve.getPoints(100);
+        points = curve.getPoints(divisions);
+        this.createPathVectors(points, divisions, debug, scene);
 
         if (debug && scene)
-            debugLine(scene, points);
+            debugLine(scene, points, 0x00ffff);
 
         extrudeOptions.extrudePath = curve;
 
@@ -84,12 +114,12 @@ export default class Track {
 
     // creates an elliptical curve
     createEllipse(origin: THREE.Vector3, radius: [x: number, y: number],
-        angles: [start: number, end: number], clockwise: boolean, division: number,
+        angles: [start: number, end: number], clockwise: boolean, divisions: number,
         extrudeShape: THREE.Shape, extrudeOptions: THREE.ExtrudeGeometryOptions, 
         material: THREE.Material, debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
         
         if (debug && scene) 
-            debugPoints(scene, [origin]);
+            debugPoints(scene, [origin], 0x00ffff);
         
         // ellipse is created in 2d
         let ellipse = new THREE.EllipseCurve(origin.x, origin.z, 
@@ -97,13 +127,14 @@ export default class Track {
         
         // make curve 3d for extrusion
         let curve = new THREE.CurvePath<THREE.Vector3>();
-        let points = ellipse.getPoints(division).map(point => 
+        let points = ellipse.getPoints(divisions).map(point => 
             new THREE.Vector3(point.x, origin.y, point.y));
+        this.createPathVectors(points, divisions, debug, scene);
 
         if (debug && scene)
-            debugLine(scene, points);
+            debugLine(scene, points, 0x00ffff);
 
-        for (let i = 0; i < division; i++)
+        for (let i = 0; i < divisions; i++)
             curve.add(new THREE.LineCurve3(points[i], points[i + 1]));
 
         extrudeOptions.extrudePath = curve;
@@ -127,20 +158,19 @@ export default class Track {
             let mesh: THREE.Mesh;
 
             let points = toVectorArray(data.points);
+            let divisions = data.divisions || 100;
             let extrudeShape = extrudeShapes[data.extrudeShapeIndex];
             let extrudeOptions = data.extrudeOptions || defaultExtrudeOptions;
             let material = layer.material;
-            let closed = data.closed || false;
-
+            
             if (data.ellipse) {
-                let divisions = data.divisions || 100;
-
                 mesh = this.createEllipse(points[0], data.radius, 
                     data.angles, data.clockwise, divisions, 
                     extrudeShape, extrudeOptions, material, debug, scene);
             } else {
-                mesh = this.createCatmullRom(points, closed, extrudeShape, 
-                    extrudeOptions, material, debug, scene);
+                let closed = data.closed || false;
+                mesh = this.createCatmullRom(points, closed, divisions, 
+                    extrudeShape, extrudeOptions, material, debug, scene);
             }
             
             if (data.moving) {

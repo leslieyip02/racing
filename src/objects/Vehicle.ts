@@ -1,15 +1,10 @@
 import * as THREE from "three";
 import Track from "./Track";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { DebugVector } from "../utils/debug";
-import { IControls, ICheckpoint, IVehicleData } from "../utils/interfaces";
+import { DynamicDebugVector } from "../utils/debug";
+import { ICheckpoint, IVehicleData } from "../utils/interfaces";
 
 export default class Vehicle {
-    camera: THREE.PerspectiveCamera;
-    manualCamera: boolean = false;
-    orbitals?: OrbitControls;
-
     acceleration: number;
     deceleration: number;
     friction: number;
@@ -31,23 +26,20 @@ export default class Vehicle {
     model: THREE.Group;
     hitbox: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
 
-    alive: boolean;
+    isAlive: boolean;
     canMove: boolean;
 
     checkpoint: ICheckpoint;
     lastCheckpointIndex: number;
     laps: number;
 
-    directionDebug?: DebugVector;
-    normalDebug?: DebugVector;
-    upDebug?: DebugVector;
+    directionDebug?: DynamicDebugVector;
+    normalDebug?: DynamicDebugVector;
+    upDebug?: DynamicDebugVector;
 
-    constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera,
-        vehicleData: IVehicleData, position: THREE.Vector3, direction: THREE.Vector3,
-        rotation: THREE.Euler, debug?: boolean, orbitals?: OrbitControls) {
-
-        this.camera = camera;
-        this.orbitals = orbitals;
+    constructor(scene: THREE.Scene, vehicleData: IVehicleData, 
+        position: THREE.Vector3, direction: THREE.Vector3,
+        rotation: THREE.Euler, debug?: boolean) {
 
         this.acceleration = vehicleData.acceleration;
         this.deceleration = vehicleData.deceleration;
@@ -70,7 +62,7 @@ export default class Vehicle {
 
         this.render(scene, vehicleData.modelPath, debug);
 
-        this.alive = true;
+        this.isAlive = true;
         this.canMove = true;
 
         this.lastCheckpointIndex = 1;
@@ -125,13 +117,13 @@ export default class Vehicle {
         scene.add(this.hitbox);
 
         if (debug) {
-            this.directionDebug = new DebugVector(scene, this.direction, this.position);
-            this.normalDebug = new DebugVector(scene, this.direction, this.position);
-            this.upDebug = new DebugVector(scene, this.direction, this.position, 3, 0x00ff00);
+            this.directionDebug = new DynamicDebugVector(scene, this.direction, this.position);
+            this.normalDebug = new DynamicDebugVector(scene, this.direction, this.position);
+            this.upDebug = new DynamicDebugVector(scene, this.direction, this.position, 3, 0x00ff00);
         }
     }
 
-    handleTrackCollision(track: Track) {
+    handleTrackCollision(track: Track, updateUI?: boolean) {
         let currentPosition = this.position.clone();
 
         let handledCollision = false;
@@ -209,8 +201,10 @@ export default class Vehicle {
                         if (checkpoint.index > (this.lastCheckpointIndex % track.checkpoints.length)) {
                             if (checkpoint.index == 1) {
                                 this.laps++;
-                                document.getElementById("counter").innerHTML = 
-                                    `Lap ${this.laps.toString()}/3`;
+
+                                if (updateUI)
+                                    document.getElementById("counter").innerHTML = 
+                                        `Lap ${this.laps.toString()}/3`;
                             }
                             
                             this.lastCheckpointIndex = checkpoint.index;
@@ -229,89 +223,25 @@ export default class Vehicle {
 
         // if the vehicle is airborne, rotate it back to be
         // perpendicular to the y axis
-        if (!handledCollision) 
+        if (!handledCollision)
             this.rotation.x *= 0.99;
     }
 
-    handleVehicleMovement(keysPressed: IControls, dt: number) {
+    turn(angle: number) {
+        // yaw
+        this.rotation.y += angle;
+        
+        // roll
+        let roll = this.rotation.z - angle;
+        this.rotation.z = angle < 0 ? Math.min(roll, this.maxRoll) :
+            Math.max(roll, -this.maxRoll);
+
+        this.direction.applyAxisAngle(this.hitbox.up, angle);
+    }
+
+    handleVehicleMovement() {
         if (!this.canMove)
             return;
-
-        // thrust determines the extent of acceleration
-        if (keysPressed["arrowup"])
-            this.thrust = Math.min(this.thrust + 0.02, 1);
-        
-        if (keysPressed["arrowdown"])
-            this.thrust = Math.max(this.thrust - 0.02, 0);
-        
-        if (keysPressed["arrowup"] || keysPressed["arrowdown"]) {
-            let gaugeFill = document.getElementById("gauge-fill");
-            
-            let gaugeHeight = this.thrust * 40;
-            gaugeFill.style.top = `${40 - gaugeHeight}vh`;
-            gaugeFill.style.height = `${gaugeHeight}vh`;
-
-            // create a gradient from green to yellow to red based on thrust
-            // clamp values between #4bff00 and #ff4b00
-            let red = this.thrust >= 0.5 ? 255 : Math.floor(this.thrust * 2 * 180) + 75;
-            let green = this.thrust <= 0.5 ? 255 : Math.floor((1 - this.thrust) * 2 * 180) + 75;
-            gaugeFill.style.backgroundColor = `#${red.toString(16)}${green.toString(16)}00`;
-
-            keysPressed["arrowup"] = false;
-            keysPressed["arrowdown"] = false;
-        }
-
-        // acceleration
-        if (keysPressed["w"])
-            this.velocity.add(this.direction.clone()
-                .multiplyScalar(this.acceleration * this.thrust * dt));
-
-        // deceleration
-        if (keysPressed["s"] || keysPressed["shift"])
-            this.velocity.sub(this.direction.clone()
-                .multiplyScalar(this.deceleration * this.thrust * dt));
-
-        // turning
-        if (keysPressed["d"]) {
-            let angle = -this.turnRate * dt;
-
-            // yaw
-            this.rotation.y += angle;
-
-            // roll
-            this.rotation.z = Math.min(this.rotation.z - angle, this.maxRoll);
-
-            this.model.setRotationFromEuler(this.rotation.clone());
-
-            // collision hitbox does not need to roll
-            let hitboxRotation = this.rotation.clone();
-            hitboxRotation.z = 0;
-            this.hitbox.setRotationFromEuler(hitboxRotation);
-
-            this.direction.applyAxisAngle(this.hitbox.up, angle);
-        }
-
-        if (keysPressed["a"]) {
-            let angle = this.turnRate * dt;
-
-            this.rotation.y += angle;
-            this.rotation.z = Math.max(this.rotation.z - angle, -this.maxRoll);
-
-            this.model.setRotationFromEuler(this.rotation.clone());
-
-            let hitboxRotation = this.rotation.clone();
-            hitboxRotation.z = 0;
-            this.hitbox.setRotationFromEuler(hitboxRotation);
-
-            this.direction.applyAxisAngle(this.hitbox.up, angle);
-        }
-
-        // reset roll
-        if (!(keysPressed["a"] || keysPressed["d"])) {
-            this.rotation.z *= 0.8;
-            this.model.setRotationFromEuler(this.rotation.clone());
-            this.hitbox.setRotationFromEuler(this.rotation.clone());
-        }
 
         // friction
         this.velocity.multiplyScalar(this.friction);
@@ -319,10 +249,14 @@ export default class Vehicle {
         // gravity
         this.velocity.add(this.gravity);
 
-        // update position
+        // position
         this.position.add(this.velocity);
         this.model.position.set(this.position.x, this.position.y, this.position.z);
         this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
+
+        // rotation
+        this.model.setRotationFromEuler(this.rotation.clone());
+        this.hitbox.setRotationFromEuler(this.rotation.clone());
 
         if (this.directionDebug)
             this.directionDebug.update(this.direction.clone(), this.position.clone());
@@ -331,29 +265,38 @@ export default class Vehicle {
             this.upDebug.update(this.hitbox.up, this.position.clone());
     }
 
-    handleCameraMovement(forward: boolean, follow: boolean = true) {
-        let lookAtPosition = this.position.clone();
+    handleOutOfBounds(updateUI?: boolean) {
+        // reset vehicle to last checkpoint if it falls out of bounds        
+        if (this.position.y < -30 || !this.isAlive) {            
+            let curtain = document.getElementById("curtain");
+            if (updateUI)
+                curtain.classList.add("fade-to-black");
 
-        // the camera will only follow the vehicle if it is in bounds
-        if (follow) {
-            let cameraPosition = this.position.clone();
-            let facingDirection = new THREE.Vector3(this.direction.x, 
-                0, this.direction.z).normalize();
+            if (this.isAlive) {
+                this.isAlive = false;
 
-            if (!forward)
-                facingDirection.negate();
+                setTimeout(() => {
+                    this.resetToCheckpoint(this.checkpoint);
+                    this.isAlive = true;
+                    this.canMove = false;
 
-            // set the camera to look further in front of the vehicle 
-            lookAtPosition.add(facingDirection);
+                    if (updateUI) {
+                        curtain.classList.remove("fade-to-black");
+                        curtain.style.opacity = "100";
+                        curtain.classList.add("scroll-up");
+                    }
+                    
+                    setTimeout(() => {
+                        if (updateUI) {
+                            curtain.classList.remove("scroll-up");
+                            curtain.style.opacity = "0";
+                        }
 
-            // set camera behind and above vehicle
-            let positionOffset = facingDirection.clone().multiplyScalar(3);
-            cameraPosition.sub(positionOffset);
-            cameraPosition.y += 1.5;
-            this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+                        this.canMove = true;
+                    }, 1000)
+                }, 900);
+            } 
         }
-
-        this.camera.lookAt(lookAtPosition);
     }
 
     resetToCheckpoint(checkpoint: ICheckpoint) {
@@ -369,55 +312,20 @@ export default class Vehicle {
         }
         
         this.velocity = new THREE.Vector3(0, 0, 0);
+        this.thrust = 0;
         this.model.position.set(this.position.x, this.position.y, this.position.z);
         this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
         this.model.setRotationFromEuler(this.rotation.clone());
         this.hitbox.setRotationFromEuler(this.rotation.clone());
     }
 
-    update(keysPressed: IControls, track?: Track, dt?: number) {
+    update(track: Track,  dt?: number) {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
     
         this.gravity = this.defaultGravity;
         this.handleTrackCollision(track);        
-        this.handleVehicleMovement(keysPressed, dt);
-
-        // reset vehicle to last checkpoint if it falls out of bounds        
-        if (this.position.y < -30 || !this.alive) {
-            let curtain = document.getElementById("curtain");
-            curtain.classList.add("fade-to-black");
-
-            if (this.alive) {
-                this.alive = false;
-
-                setTimeout(() => {
-                    this.resetToCheckpoint(this.checkpoint);
-                    this.alive = true;
-                    this.canMove = false;
-
-                    curtain.classList.remove("fade-to-black");
-                    curtain.style.opacity = "100";
-                    curtain.classList.add("scroll-up");
-                    
-                    setTimeout(() => {
-                        curtain.classList.remove("scroll-up");
-                        curtain.style.opacity = "0";
-                        this.canMove = true;
-                    }, 1000)
-                }, 900);
-            } 
-        }
-        
-        if (!this.manualCamera) {
-            if (this.orbitals)
-                this.orbitals.enabled = false;
-            
-            let forward = !keysPressed["r"];
-            this.handleCameraMovement(forward, this.alive);
-        } else {
-            if (this.orbitals)
-                this.orbitals.enabled = true;
-        }
+        this.handleVehicleMovement();
+        this.handleOutOfBounds();
     }
 }

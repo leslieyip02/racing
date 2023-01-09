@@ -1,7 +1,7 @@
 import GameScene from "./GameScene";
 
 // set up scene
-let scene = new GameScene(true);
+let scene = new GameScene();
 
 // keep track of time
 let currentTime = 0;
