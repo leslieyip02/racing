@@ -38,15 +38,20 @@ export default class CPU extends Vehicle {
 
         this.thrust = 0.5;
 
+        // update direciton and velocity manually instead of using controls
         this.currentIndex = this.nextPointIndex(track);
         this.direction = track.pathVectors[this.currentIndex].clone();
-        this.direction.y = 0;
-        this.direction.normalize();
 
         this.velocity = this.direction.clone()
             .multiplyScalar(this.acceleration * this.thrust * dt * 50);
-        this.velocity.add(this.gravity.clone().multiplyScalar(dt / 2));
+        this.velocity.add(this.gravity.clone().multiplyScalar(dt * 0.75));
 
+        // update collisions and position
         super.update(track, dt);
+
+        // handle vehicle rotation
+        let targetPosition = this.position.clone().add(this.direction.clone())
+        this.model.lookAt(targetPosition);
+        this.hitbox.lookAt(targetPosition);
     }
 }
