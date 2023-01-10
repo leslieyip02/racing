@@ -1,6 +1,6 @@
-import { IVehicleData } from "../../src/utils/interfaces";
+import { VehicleData } from "../../src/utils/interfaces";
 
-let bike: IVehicleData = {
+let bike: VehicleData = {
     modelPath: "./assets/models/bike.glb",
 
     acceleration: 0.001,

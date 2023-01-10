@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import Track from "./Track";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { IControls, IVehicleData } from "../utils/interfaces";
+import { Controls, VehicleData } from "../utils/interfaces";
 import Vehicle from "./Vehicle";
 
 export default class Player extends Vehicle {
@@ -10,7 +10,7 @@ export default class Player extends Vehicle {
     orbitals?: OrbitControls;
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera,
-        vehicleData: IVehicleData, position: THREE.Vector3, direction: THREE.Vector3,
+        vehicleData: VehicleData, position: THREE.Vector3, direction: THREE.Vector3,
         rotation: THREE.Euler, debug?: boolean, orbitals?: OrbitControls) {
 
         super(scene, vehicleData, position, direction, rotation, debug);
@@ -53,7 +53,7 @@ export default class Player extends Vehicle {
         super.handleTrackCollision(track, true);
     }
 
-    handleInput(keysPressed: IControls, dt: number) {
+    handleInput(keysPressed: Controls, dt: number) {
         // thrust determines the extent of acceleration
         if (keysPressed["arrowup"])
             this.thrust = Math.min(this.thrust + 0.02, 1);
@@ -104,7 +104,7 @@ export default class Player extends Vehicle {
         super.handleOutOfBounds(true);
     }
 
-    update(track: Track, dt?: number, keysPressed?: IControls) {
+    update(track: Track, dt?: number, keysPressed?: Controls) {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
         

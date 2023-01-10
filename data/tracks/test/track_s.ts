@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { ICurveData, ITrackData } from "../../../src/utils/interfaces";
+import { CurveData, TrackData } from "../../../src/utils/interfaces";
 
-let track_s: ITrackData = {
+let track_s: TrackData = {
     startPoint: new THREE.Vector3(0, 10, 0),
     startDirection: new THREE.Vector3(0, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, 0, 0, "YZX"),
@@ -10,7 +10,7 @@ let track_s: ITrackData = {
             points: [[0, 10, -20], [0, 10, 20]],
             extrudeShapeIndex: 0
         },
-        ... Array(10).fill(0).map((_, i): ICurveData => {
+        ... Array(10).fill(0).map((_, i): CurveData => {
             return {
                 points: [[0, 10, (i + 1) * 20], [0, 10, (i + 2) * 20]],
                 extrudeShapeIndex: 0,

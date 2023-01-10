@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { toVectorArray, toShapeArray } from "../utils/functions";
-import { ICurveData, ILayerData, IPlatform, ICheckpointData, ICheckpoint, ITrackData } from "../utils/interfaces";
+import { toVectorArray, toShapeArray } from "../utils/geometry";
+import { CurveData, LayerData, Platform, CheckpointData, Checkpoint, TrackData } from "../utils/interfaces";
 import { debugAxes, debugPoints, debugLine, debugVector } from "../utils/debug";
 
 export default class Track {    
@@ -9,14 +9,14 @@ export default class Track {
     startRotation: THREE.Euler;
 
     body: THREE.Mesh;
-    checkpoints: Array<ICheckpoint>;
-    movingPlatforms: Array<IPlatform>;
+    checkpoints: Array<Checkpoint>;
+    movingPlatforms: Array<Platform>;
     elapsedTime: number;
 
     pathPoints: Array<THREE.Vector3>;
     pathVectors: Array<THREE.Vector3>;
 
-    constructor(scene: THREE.Scene, trackData: ITrackData, debug?: boolean) {
+    constructor(scene: THREE.Scene, trackData: TrackData, debug?: boolean) {
         this.startPoint = trackData.startPoint;
         this.startDirection = trackData.startDirection;
         this.startRotation = trackData.startRotation;
@@ -30,7 +30,7 @@ export default class Track {
         this.render(scene, trackData, debug);
     }
 
-    createCheckpoints(checkpointData: Array<ICheckpointData>, 
+    createCheckpoints(checkpointData: Array<CheckpointData>, 
         scene: THREE.Scene, debug?: boolean) {
         
         this.checkpoints = [];
@@ -55,7 +55,7 @@ export default class Track {
             scene.add(mesh);
             
             // checkpoint index is 1-based index for modular arithmetic
-            let checkpoint: ICheckpoint = {
+            let checkpoint: Checkpoint = {
                 mesh: mesh,
                 resetDirection: data.resetDirection,
                 resetRotation: data.resetRotation,
@@ -146,7 +146,7 @@ export default class Track {
     }
 
     // combines curves into a single mesh
-    createTrack(curveData: Array<ICurveData>, layer: ILayerData,
+    createTrack(curveData: Array<CurveData>, layer: LayerData,
         debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
         
         let meshes: Array<THREE.Mesh> = [];
@@ -174,7 +174,7 @@ export default class Track {
             }
             
             if (data.moving) {
-                let platform: IPlatform = {
+                let platform: Platform = {
                     mesh: mesh,
                     origin: mesh.position.clone(),
                     direction: data.direction,
@@ -195,7 +195,7 @@ export default class Track {
         return track;
     }
 
-    render(scene: THREE.Scene, trackData: ITrackData, debug?: boolean) {
+    render(scene: THREE.Scene, trackData: TrackData, debug?: boolean) {
         if (debug)
             debugAxes(scene);
         

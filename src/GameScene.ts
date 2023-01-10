@@ -6,8 +6,8 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry"
 import { CPU, Player, Satellite, Track, Vehicle } from "./objects/objects";
-import { randomVector } from "./utils/functions";
-import { IControls } from "./utils/interfaces";
+import { randomVector } from "./utils/geometry";
+import { Controls } from "./utils/interfaces";
 import { tracks } from "../data/tracks/tracks";
 import { speeders } from "../data/vehicles/vehicles";
 
@@ -24,7 +24,7 @@ export default class GameScene extends THREE.Scene {
     width: number;
     height: number;
 
-    keysPressed: IControls;
+    keysPressed: Controls;
 
     track: Track;
     satellites: Array<Satellite>;

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import Track from "./Track";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { DynamicDebugVector } from "../utils/debug";
-import { ICheckpoint, IVehicleData } from "../utils/interfaces";
+import { Checkpoint, VehicleData } from "../utils/interfaces";
 
 export default class Vehicle {
     acceleration: number;
@@ -29,7 +29,7 @@ export default class Vehicle {
     isAlive: boolean;
     canMove: boolean;
 
-    checkpoint: ICheckpoint;
+    checkpoint: Checkpoint;
     lastCheckpointIndex: number;
     laps: number;
 
@@ -37,7 +37,7 @@ export default class Vehicle {
     normalDebug?: DynamicDebugVector;
     upDebug?: DynamicDebugVector;
 
-    constructor(scene: THREE.Scene, vehicleData: IVehicleData, 
+    constructor(scene: THREE.Scene, vehicleData: VehicleData, 
         position: THREE.Vector3, direction: THREE.Vector3,
         rotation: THREE.Euler, debug?: boolean) {
 
@@ -299,7 +299,7 @@ export default class Vehicle {
         }
     }
 
-    resetToCheckpoint(checkpoint: ICheckpoint) {
+    resetToCheckpoint(checkpoint: Checkpoint) {
         // default checkpoint values
         if (!checkpoint) {
             this.position = new THREE.Vector3(0, 0, 0);

@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { ITrackData } from "../../../src/utils/interfaces";
+import { TrackData } from "../../../src/utils/interfaces";
 
-let track_o: ITrackData = {
+let track_o: TrackData = {
     startPoint: new THREE.Vector3(20, 1, 0),
     startDirection: new THREE.Vector3(0, 0, 1).normalize(),
     startRotation: new THREE.Euler(0, 0, 0, "YZX"),

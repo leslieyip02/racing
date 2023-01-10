@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import { IVehicleData } from "../utils/interfaces";
+import { VehicleData } from "../utils/interfaces";
 import Vehicle from "./Vehicle";
 import Track from "./Track";
 
 export default class CPU extends Vehicle {
     currentIndex: number;
     
-    constructor(scene: THREE.Scene, vehicleData: IVehicleData, 
+    constructor(scene: THREE.Scene, vehicleData: VehicleData, 
         position: THREE.Vector3, direction: THREE.Vector3,
         rotation: THREE.Euler, debug?: boolean) {
 

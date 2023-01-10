@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { IVehicleData } from "../../src/utils/interfaces";
+import { VehicleData } from "../../src/utils/interfaces";
 
-let speeder_1: IVehicleData = {
+let speeder_1: VehicleData = {
     modelPath: "./assets/models/speeder_1.glb",
 
     acceleration: 0.00125,
