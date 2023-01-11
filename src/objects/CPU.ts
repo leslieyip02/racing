@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { VehicleData } from "../utils/interfaces";
+import { Checkpoint, VehicleData } from "../utils/interfaces";
 import Vehicle from "./Vehicle";
 import Track from "./Track";
 
@@ -8,9 +8,10 @@ export default class CPU extends Vehicle {
     
     constructor(scene: THREE.Scene, vehicleData: VehicleData, 
         position: THREE.Vector3, direction: THREE.Vector3,
-        rotation: THREE.Euler, debug?: boolean) {
+        rotation: THREE.Euler, checkpoint: Checkpoint, debug?: boolean) {
 
-        super(scene, vehicleData, position, direction, rotation, debug);
+        super(scene, vehicleData, position, direction, 
+            rotation, checkpoint, debug);
     }
     
     nextPointIndex(track: Track): number {
@@ -36,12 +37,14 @@ export default class CPU extends Vehicle {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
 
+        // keep constant thrust for convenience
         this.thrust = 0.5;
 
-        // update direciton and velocity manually instead of using controls
+        // update direciton manually instead of using controls
         this.currentIndex = this.nextPointIndex(track);
         this.direction = track.pathVectors[this.currentIndex].clone();
 
+        // set velocity directly for greater control of the CPU's movement
         this.velocity = this.direction.clone()
             .multiplyScalar(this.acceleration * this.thrust * dt * 50);
         this.velocity.add(this.gravity.clone().multiplyScalar(dt * 0.75));

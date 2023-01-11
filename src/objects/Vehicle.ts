@@ -39,7 +39,7 @@ export default class Vehicle {
 
     constructor(scene: THREE.Scene, vehicleData: VehicleData, 
         position: THREE.Vector3, direction: THREE.Vector3,
-        rotation: THREE.Euler, debug?: boolean) {
+        rotation: THREE.Euler, checkpoint: Checkpoint, debug?: boolean) {
 
         this.acceleration = vehicleData.acceleration;
         this.deceleration = vehicleData.deceleration;
@@ -65,6 +65,7 @@ export default class Vehicle {
         this.isAlive = true;
         this.canMove = true;
 
+        this.checkpoint = checkpoint;
         this.lastCheckpointIndex = 1;
         this.laps = 1;
     }
@@ -300,16 +301,9 @@ export default class Vehicle {
     }
 
     resetToCheckpoint(checkpoint: Checkpoint) {
-        // default checkpoint values
-        if (!checkpoint) {
-            this.position = new THREE.Vector3(0, 0, 0);
-            this.direction = new THREE.Vector3(1, 0, 0);
-            this.rotation = new THREE.Euler(0, Math.PI / 2, 0, "YZX");
-        } else {
-            this.position = checkpoint.mesh.position.clone();
-            this.direction = checkpoint.resetDirection.clone();
-            this.rotation = checkpoint.resetRotation.clone();
-        }
+        this.position = checkpoint.mesh.position.clone();
+        this.direction = checkpoint.resetDirection.clone();
+        this.rotation = checkpoint.resetRotation.clone();
         
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.thrust = 0;

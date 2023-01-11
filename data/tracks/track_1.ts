@@ -91,6 +91,7 @@ let track_1: TrackData = {
             position: new THREE.Vector3(50, 0, 0),
             resetDirection: new THREE.Vector3(1, 0, 0),
             resetRotation: new THREE.Euler(0, Math.PI / 2, 0, "YZX"),
+            height: 100
         },
         {
             position: new THREE.Vector3(550, 0, 0),
@@ -106,6 +107,7 @@ let track_1: TrackData = {
             position: new THREE.Vector3(-150, 24, -150),
             resetDirection: new THREE.Vector3(-1, 0, 0).normalize(),
             resetRotation: new THREE.Euler(0, -Math.PI / 2, 0, "YZX"),
+            height: 100
         },
         {
             position: new THREE.Vector3(-320, 24, 0),

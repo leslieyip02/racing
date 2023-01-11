@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import Track from "./Track";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { Controls, VehicleData } from "../utils/interfaces";
+import { Controls, Checkpoint, VehicleData } from "../utils/interfaces";
 import Vehicle from "./Vehicle";
 
 export default class Player extends Vehicle {
@@ -11,9 +11,11 @@ export default class Player extends Vehicle {
 
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera,
         vehicleData: VehicleData, position: THREE.Vector3, direction: THREE.Vector3,
-        rotation: THREE.Euler, debug?: boolean, orbitals?: OrbitControls) {
+        rotation: THREE.Euler, checkpoint: Checkpoint,
+        debug?: boolean, orbitals?: OrbitControls) {
 
-        super(scene, vehicleData, position, direction, rotation, debug);
+        super(scene, vehicleData, position, direction, 
+            rotation, checkpoint, debug);
         this.camera = camera;
         this.orbitals = orbitals;
     }

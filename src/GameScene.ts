@@ -131,16 +131,17 @@ export default class GameScene extends THREE.Scene {
 
         let trackData = tracks[0];
         this.track = new Track(this, trackData, debug);
+        let startPoint = this.track.checkpoints[0];
 
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
 
         this.player = new Player(this, this.camera, speeders[0], 
             this.track.startPoint.clone(), this.track.startDirection.clone(), 
-            this.track.startRotation.clone(), debug, this.orbitals);
+            this.track.startRotation.clone(), startPoint, debug, this.orbitals);
         
         this.CPUs = [new CPU(this, speeders[0], this.track.startPoint.clone(),
-            this.track.startDirection.clone(), this.track.startRotation.clone(), debug)]
+            this.track.startDirection.clone(), this.track.startRotation.clone(), startPoint, debug)]
 
         if (debug) {
             // set up debugger
@@ -266,15 +267,37 @@ export default class GameScene extends THREE.Scene {
 
 
     update(dt?: number) {
+        // update game objects
+        this.track.update(dt);
+        
         this.player.update(this.track, dt, this.keysPressed);
 
         for (let cpu of this.CPUs)
             cpu.update(this.track, dt);
 
+        // determine position of the player
+        // let vehicles: Array<Vehicle> = [this.player, ...this.CPUs];
+        // vehicles.sort((a, b) => {
+        //     let lapDifference = a.laps - b.laps;
+        //     if (lapDifference != 0)
+        //         return -Math.sign(lapDifference);
+
+        //     let checkpointDifference = a.checkpoint.index - b.checkpoint.index;
+        //     if (checkpointDifference != 0)
+        //         return -Math.sign(checkpointDifference);
+
+        //     let nextCheckpointIndex = (a.checkpoint.index + 1) % this.track.checkpoints.length;
+        //     let nextCheckpointPosition = this.track.checkpoints[nextCheckpointIndex].mesh.position;
+        //     let distanceDifference = a.position.distanceTo(nextCheckpointPosition.clone()) - 
+        //         b.position.distanceTo(nextCheckpointPosition.clone());
+        //     return Math.sign(distanceDifference);
+        // });
+
+        // let rank = vehicles.indexOf(this.player) + 1;
+        
+        // scene decorations
         if (this.satellites)
             for (let satellite of this.satellites)
                 satellite.update(dt);
-
-        this.track.update(dt);
     }
 }
