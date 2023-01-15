@@ -5,7 +5,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry"
-import { CPU, Player, Satellite, Track, Vehicle } from "./objects/objects";
+import { CPU, Player, Satellite, StartLine, Track, Vehicle } from "./objects/objects";
 import { randomVector } from "./utils/geometry";
 import { Controls } from "./utils/interfaces";
 import { tracks } from "../data/tracks/tracks";
@@ -136,6 +136,9 @@ export default class GameScene extends THREE.Scene {
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
 
+        let startLine = new StartLine(startPoint.mesh.position, 
+            startPoint.mesh.rotation, this);
+
         this.player = new Player(this, this.camera, speeders[0], 
             this.track.startPoint.clone(), this.track.startDirection.clone(), 
             this.track.startRotation.clone(), startPoint, debug, this.orbitals);
@@ -264,7 +267,6 @@ export default class GameScene extends THREE.Scene {
             this.keysPressed[`arrow${direction}`] = true;
         });
     }
-
 
     update(dt?: number) {
         // update game objects
