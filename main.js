@@ -62566,7 +62566,7 @@ class Sign extends THREE.Mesh {
             extrudeOptions.extrudePath = curve;
             this.geometry = new THREE.ExtrudeGeometry(data.extrudeShape, extrudeOptions);
             let loader = new THREE.TextureLoader();
-            yield loader.loadAsync("../../assets/textures/arrow.jpg")
+            yield loader.loadAsync("./assets/textures/arrow.jpg")
                 .then(texture => {
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
@@ -62638,7 +62638,7 @@ class StartLine extends THREE.Group {
     loadBanner(position, rotation) {
         return __awaiter(this, void 0, void 0, function* () {
             let loader = new THREE.TextureLoader();
-            yield loader.loadAsync("../../assets/textures/checkerboard.jpg")
+            yield loader.loadAsync("./assets/textures/checkerboard.jpg")
                 .then(texture => {
                 let bannerMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
                 let bannerGeometry = new THREE.PlaneGeometry(36, 5);
