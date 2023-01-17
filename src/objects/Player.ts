@@ -55,6 +55,19 @@ export default class Player extends Vehicle {
         super.handleTrackCollision(track, true);
     }
 
+    updateGaugeFill() {
+        let gaugeFill = document.getElementById("gauge-fill");
+        let gaugeHeight = this.thrust * 40;
+        gaugeFill.style.top = `${40 - gaugeHeight}vh`;
+        gaugeFill.style.height = `${gaugeHeight}vh`;
+
+        // create a gradient from green to yellow to red based on thrust
+        // clamp values between #4bff00 and #ff4b00
+        let red = this.thrust >= 0.5 ? 255 : Math.floor(this.thrust * 2 * 180) + 75;
+        let green = this.thrust <= 0.5 ? 255 : Math.floor((1 - this.thrust) * 2 * 180) + 75;
+        gaugeFill.style.backgroundColor = `#${red.toString(16)}${green.toString(16)}00`;
+    }
+
     handleInput(keysPressed: Controls, dt: number) {
         // thrust determines the extent of acceleration
         if (keysPressed["arrowup"])
@@ -64,20 +77,9 @@ export default class Player extends Vehicle {
             this.thrust = Math.max(this.thrust - 0.02, 0);
         
         if (keysPressed["arrowup"] || keysPressed["arrowdown"]) {
-            let gaugeFill = document.getElementById("gauge-fill");
-            
-            let gaugeHeight = this.thrust * 40;
-            gaugeFill.style.top = `${40 - gaugeHeight}vh`;
-            gaugeFill.style.height = `${gaugeHeight}vh`;
-
-            // create a gradient from green to yellow to red based on thrust
-            // clamp values between #4bff00 and #ff4b00
-            let red = this.thrust >= 0.5 ? 255 : Math.floor(this.thrust * 2 * 180) + 75;
-            let green = this.thrust <= 0.5 ? 255 : Math.floor((1 - this.thrust) * 2 * 180) + 75;
-            gaugeFill.style.backgroundColor = `#${red.toString(16)}${green.toString(16)}00`;
-
+            this.updateGaugeFill();
             keysPressed["arrowup"] = false;
-            keysPressed["arrowdown"] = false;
+            keysPressed["arrowdown"] = false;   
         }
 
         // acceleration
@@ -104,6 +106,7 @@ export default class Player extends Vehicle {
 
     handleOutOfBounds() {
         super.handleOutOfBounds(true);
+        this.updateGaugeFill();
     }
 
     update(track: Track, dt?: number, keysPressed?: Controls) {
