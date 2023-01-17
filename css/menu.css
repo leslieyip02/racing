@@ -1,0 +1,26 @@
+.menu-background {
+    width: 100vw;
+    background-color: #000226;
+}
+
+#selectors {
+    position: absolute;
+    top: 20vh;
+    left: 8vw;
+
+    width: 84vw;
+    height: 60vh;
+
+    border: 2px solid white;
+
+    display: flex;
+}
+
+.selector {
+    width: inherit;
+    height: inherit;
+    
+    
+    border: 2px solid red;
+
+}

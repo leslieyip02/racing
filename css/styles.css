@@ -2,6 +2,7 @@
 @import "./dashboard.css";
 @import "./gauge.css";
 @import "./joystick.css";
+@import "./menu.css";
 
 html, body, canvas {
     margin: 0;
