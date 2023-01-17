@@ -12,7 +12,7 @@ export default class StartLine extends THREE.Group {
 
     async loadBanner(position: THREE.Vector3, rotation: THREE.Euler) {
         let loader = new THREE.TextureLoader();
-        await loader.loadAsync("../../assets/textures/checkerboard.jpg")
+        await loader.loadAsync("./assets/textures/checkerboard.jpg")
             .then(texture => {
                 let bannerMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
                 let bannerGeometry = new THREE.PlaneGeometry(36, 5);

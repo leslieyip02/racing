@@ -42,7 +42,7 @@ export default class Sign extends THREE.Mesh {
         
         this.geometry = new THREE.ExtrudeGeometry(data.extrudeShape, extrudeOptions);
         let loader = new THREE.TextureLoader();
-        await loader.loadAsync("../../assets/textures/arrow.jpg")
+        await loader.loadAsync("./assets/textures/arrow.jpg")
             .then(texture => {
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
