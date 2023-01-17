@@ -5,12 +5,12 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry"
-import { CPU, Player, Track, Vehicle } from "./objects/objects";
-import { Satellite } from "./decorations/decorations";
-import { randomVector } from "./utils/geometry";
-import { Controls } from "./utils/interfaces";
-import { tracks } from "../data/tracks/tracks";
-import { speeders } from "../data/vehicles/vehicles";
+import { CPU, Player, Track, Vehicle } from "../objects/objects";
+import { Satellite } from "../decorations/decorations";
+import { randomVector } from "../utils/geometry";
+import { Controls } from "../utils/interfaces";
+import { tracks } from "../../data/tracks/tracks";
+import { speeders, bike, mustang } from "../../data/vehicles/vehicles";
 
 export default class GameScene extends THREE.Scene {
     debugger: GUI;
@@ -33,13 +33,13 @@ export default class GameScene extends THREE.Scene {
     player: Player;
     CPUs: Array<Vehicle>;
 
-    constructor(debug?: boolean) {
+    constructor(speederIndex: number, debug?: boolean) {
         super();
 
         this.width = window.innerWidth;
         this.height = window.innerHeight;
 
-        this.render(debug);
+        this.render(speederIndex, debug);
 
         // set up utilities
         // set up controls
@@ -103,7 +103,7 @@ export default class GameScene extends THREE.Scene {
         }
     }
 
-    render(debug?: boolean) {
+    render(speederIndex: number, debug?: boolean) {
         // set up camera
         this.camera = new THREE.PerspectiveCamera(80, 
             this.width / this.height, 0.1, 3200);
@@ -136,8 +136,14 @@ export default class GameScene extends THREE.Scene {
 
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
+        
+        if (isNaN(speederIndex))
+            speederIndex = 0;
 
-        this.player = new Player(this, this.camera, speeders[0], 
+        let playerVehicleData = speederIndex == 3 ? bike : speederIndex == 4 ? mustang : 
+            speederIndex > 4 || speederIndex < 0 ? speeders[0] : speeders[speederIndex];
+
+        this.player = new Player(this, this.camera, playerVehicleData, 
             this.track.startPoint.clone(), this.track.startDirection.clone(), 
             this.track.startRotation.clone(), startPoint, debug, this.orbitals);
         

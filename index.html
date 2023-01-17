@@ -8,24 +8,19 @@
         <link rel="icon" type="image/svg+xml" href="./assets/favicon.ico" />
     </head>
     
-    <body>
+    <body id="menu-background">
+        <div id="select-text">Select a speeder:</div>
+        
+        <div id="selectors">
+            <div id="speeder_0" class="selector"></div>
+            <div id="speeder_1" class="selector"></div>
+            <div id="speeder_2" class="selector"></div>
+        </div>
+        
         <div id="curtain"></div>
 
-        <div id="dashboard">
-            <div id="counter">Lap 1/3</div>
-            <div id="timer">00:00:00</div>
-        </div>
-
-        <div id="joystick">
-            <div id="knob"></div>
-        </div>
-
-        <div id="gauge">
-            <div id="gauge-fill"></div>
-        </div>
-                
-        <canvas id="game"></canvas>
+        <canvas id="menu"></canvas>
         
-        <script type="application/javascript" src="./dist/main.js" ></script>
+        <script type="application/javascript" src="./dist/index.bundle.js" ></script>
     </body>
 </html>

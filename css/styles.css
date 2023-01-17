@@ -1,13 +1,16 @@
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@1,300&display=swap");
 @import "./curtain.css";
 @import "./dashboard.css";
 @import "./gauge.css";
 @import "./joystick.css";
+@import "./menu.css";
 
 html, body, canvas {
     margin: 0;
     padding: 0;
     border: 0;
     overflow: hidden;
+    background-color: #000000;
 }
 
 body {
