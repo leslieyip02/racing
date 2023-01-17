@@ -116,6 +116,33 @@ let track_1: TrackData = {
         }
     ],
     backgroundColors: ["#000226"],
+    signsPoints: [
+        {
+            points: [[550, 1, 50]],
+            ellipse: true,
+            radius: [75, 75],
+            angles: [3 * Math.PI / 2, 0],
+            extrudeShape: new THREE.Shape([new THREE.Vector2(1, 0), new THREE.Vector2(0, 0)])
+        },   
+        {
+            points: [[-400, 13, -75]],
+            ellipse: true,
+            radius: [100, 100],
+            angles: [-Math.PI / 2, -3 * Math.PI / 2],
+            clockwise: true,
+            extrudeShape: new THREE.Shape([new THREE.Vector2(1, 0), new THREE.Vector2(0, 0)])
+        },
+        {
+            points: [[-215, 13, -149], [-235, 13, -135]],
+            clockwise: true,
+            extrudeShape: new THREE.Shape([new THREE.Vector2(1, 0), new THREE.Vector2(0, 0)])
+        },
+        {
+            points: [[-215, 13, -151], [-235, 13, -165]],
+            extrudeShape: new THREE.Shape([new THREE.Vector2(1, 0), new THREE.Vector2(0, 0)]),
+            textureRotation: Math.PI / 2
+        }
+    ]
 }
 
 export default track_1;

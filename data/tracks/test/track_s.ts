@@ -15,7 +15,7 @@ let track_s: TrackData = {
                 points: [[0, 10, (i + 1) * 20], [0, 10, (i + 2) * 20]],
                 extrudeShapeIndex: 0,
                 moving: true,
-                direction: new THREE.Vector3(10, 0, 0),
+                movingDirection: new THREE.Vector3(10, 0, 0),
                 period: 8000,
                 phase: i * 800
             }

@@ -16,13 +16,16 @@ interface CurveData {
     clockwise?: boolean;
     divisions?: number
 
-    extrudeShapeIndex: number
+    extrudeShapeIndex?: number
     extrudeOptions?: THREE.ExtrudeGeometryOptions;
+    extrudeShape?: THREE.Shape
 
     moving?: boolean;
-    direction?: THREE.Vector3;
+    movingDirection?: THREE.Vector3;
     period?: number;
     phase?: number;
+
+    textureRotation?: number;
 }
 
 // the track is rendered in multiple layers
@@ -35,7 +38,7 @@ interface LayerData {
 interface Platform {
     mesh: THREE.Mesh;
     origin: THREE.Vector3;
-    direction: THREE.Vector3;
+    movingDirection: THREE.Vector3;
     period: number;
     phase: number;
 }
@@ -63,6 +66,7 @@ interface TrackData {
     layerData: Array<LayerData>;
     checkpoints: Array<CheckpointData>;
     backgroundColors: Array<string>;
+    signsPoints?: Array<CurveData>
     gridColor?: number | THREE.Color;
 }
 

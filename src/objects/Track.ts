@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { toVectorArray, toShapeArray } from "../utils/geometry";
 import { CurveData, LayerData, Platform, CheckpointData, Checkpoint, TrackData } from "../utils/interfaces";
 import { debugAxes, debugPoints, debugLine, debugVector } from "../utils/debug";
+import { Sign, StartLine } from "../decorations/decorations";
 
 export default class Track {    
     startPoint: THREE.Vector3;
@@ -145,6 +146,18 @@ export default class Track {
         return mesh;
     }
 
+    createPlatform(mesh: THREE.Mesh, data: CurveData) {
+        let platform: Platform = {
+            mesh: mesh,
+            origin: mesh.position.clone(),
+            movingDirection: data.movingDirection,
+            period: data.period,
+            phase: data.phase
+        }
+
+        this.movingPlatforms.push(platform);
+    }
+
     // combines curves into a single mesh
     createTrack(curveData: Array<CurveData>, layer: LayerData,
         debug?: boolean, scene?: THREE.Scene): THREE.Mesh {
@@ -173,19 +186,10 @@ export default class Track {
                     extrudeShape, extrudeOptions, material, debug, scene);
             }
             
-            if (data.moving) {
-                let platform: Platform = {
-                    mesh: mesh,
-                    origin: mesh.position.clone(),
-                    direction: data.direction,
-                    period: data.period,
-                    phase: data.phase
-                }
-
-                this.movingPlatforms.push(platform);
-            } else {
+            if (data.moving)
+                this.createPlatform(mesh, data);
+            else
                 meshes.push(mesh);
-            }
         }
 
         let track = meshes.shift();
@@ -230,6 +234,14 @@ export default class Track {
 
         for (let platform of this.movingPlatforms)
             scene.add(platform.mesh);
+
+        // add decorations
+        let startLine = new StartLine(this.checkpoints[0].mesh.position, 
+            this.checkpoints[0].mesh.rotation, scene);
+
+        for (let signPoints of trackData.signsPoints) {
+            let sign = new Sign(signPoints, scene);
+        }
     }
 
     update(dt?: number) {
@@ -252,7 +264,7 @@ export default class Track {
             let phase = 2 * Math.PI * (time / platform.period);
             
             // model platform movement on a sinusoidal wave
-            let offset = platform.direction.clone()
+            let offset = platform.movingDirection.clone()
                 .multiplyScalar(Math.sin(phase));
 
             let position = platform.origin.clone()
