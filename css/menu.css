@@ -3,24 +3,46 @@
     background-color: #000226;
 }
 
+#select-text {
+    width: fit-content;
+    position: absolute;
+    top: 10vh;
+    width: 100vw;
+
+    color: #ffffff;
+    text-shadow: 0px 5px 12px #ffffff;
+    text-align: center;
+    font-size: 5vh;
+    font-family: "Source Code Pro", monospace;
+
+    animation: pulsating-glow 1s infinite ease-in-out;
+    transition: 0.3s;
+}
+
+@keyframes pulsating-glow {
+    0% { opacity: 80%; }
+    50% { opacity: 60%; }
+    100% { opacity: 80%; }
+}
+
 #selectors {
     position: absolute;
     top: 20vh;
     left: 8vw;
-
     width: 84vw;
     height: 60vh;
-
-    border: 2px solid white;
-
     display: flex;
 }
 
 .selector {
     width: inherit;
     height: inherit;
-    
-    
-    border: 2px solid red;
+    box-shadow: 0 0 0px 0px #ffffff;
+    transition: 0.2s;
+}
 
+.selector:hover {
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 16px 2px #ffffff;
+    transition: 0.2s;
 }

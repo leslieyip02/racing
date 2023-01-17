@@ -1,8 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@1,300&display=swap");
-
 #dashboard {
-    font-size: 5vh;
     color: #ffffff;
+    font-size: 5vh;
     font-family: "Source Code Pro", monospace;
 }
 

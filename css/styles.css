@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@1,300&display=swap");
 @import "./curtain.css";
 @import "./dashboard.css";
 @import "./gauge.css";
@@ -9,6 +10,7 @@ html, body, canvas {
     padding: 0;
     border: 0;
     overflow: hidden;
+    background-color: #000000;
 }
 
 body {

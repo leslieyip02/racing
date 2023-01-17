@@ -88,25 +88,6 @@ class MenuScene extends THREE.Scene {
     loadGLTF(position, data) {
         let model = data.scene;
         model.position.set(position.x, position.y, position.z);
-        // check for and enable transparent materials
-        for (let mesh of model.children) {
-            // the model itself is a THREE.Group
-            if (mesh.name == "body") {
-                // the model contains an array of THREE.Mesh,
-                // but the compiler thinks it's an array of
-                // THREE.Object3d<THREE.Event>, 
-                // so the type errors have been silenced
-                for (let material of mesh.children) {
-                    // @ts-ignore
-                    if (material.material.name == "transparent") {
-                        // @ts-ignore
-                        material.material.transparent = true;
-                        // @ts-ignore
-                        material.material.opacity = 0.2;
-                    }
-                }
-            }
-        }
         let haloGeometry = new THREE.CircleGeometry(1.2, 20);
         let haloMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
         let halo = new THREE.Mesh(haloGeometry, haloMaterial);
@@ -142,19 +123,22 @@ class MenuScene extends THREE.Scene {
             for (let i = 0; i < 3; i++) {
                 yield loader.loadAsync(vehicles_1.speeders[i].modelPath)
                     .then(data => this.loadGLTF(new THREE.Vector3((i - 1) * 4.2, 0, 0), data));
-                document.getElementById("speeder_" + i).addEventListener("onclick", () => {
-                    this.startGame(i);
-                });
+                document.getElementById(`speeder_${i}`)
+                    .addEventListener("click", () => this.startGame(i));
             }
         });
     }
     startGame(speederIndex) {
-        window.location.href = `game.html?speeder=${speederIndex}`;
+        // document.getElementById("selectors").style.display = "none";
+        let curtain = document.getElementById("curtain");
+        curtain.classList.add("fade-to-black");
+        setTimeout(() => {
+            window.location.href = `game.html?speeder=${speederIndex}`;
+        }, 900);
     }
     update(dt) {
-        for (let model of this.models) {
+        for (let model of this.models)
             model.rotateY(0.0004 * dt);
-        }
     }
 }
 exports["default"] = MenuScene;

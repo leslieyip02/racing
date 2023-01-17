@@ -14,8 +14,8 @@
 }
 
 @keyframes fade-to-black {
-    0% { opacity: 0; }
-    100% { opacity: 100; }
+    0% { opacity: 0%; }
+    100% { opacity: 100%; }
 }
 
 .scroll-up {

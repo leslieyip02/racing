@@ -56378,14 +56378,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const GameScene_1 = __importDefault(__webpack_require__(19));
-let speederIndex = 0;
-document.addEventListener("DOMContentLoaded", (e) => {
-    let parameters = new URLSearchParams(window.location.search);
-    speederIndex = parseInt(parameters.get("speeder"));
-    e.preventDefault();
-});
+// get the speeder index from the menu page
+let parameters = new URLSearchParams(window.location.search);
+let speederIndex = parseInt(parameters.get("speeder"));
 // set up scene
-let scene = new GameScene_1.default(speederIndex, true);
+let scene = new GameScene_1.default(speederIndex);
 // keep track of time
 let currentTime = 0;
 // loops updates
@@ -56445,7 +56442,7 @@ const geometry_1 = __webpack_require__(30);
 const tracks_1 = __webpack_require__(35);
 const vehicles_1 = __webpack_require__(12);
 class GameScene extends THREE.Scene {
-    constructor(speederIndex = 0, debug) {
+    constructor(speederIndex, debug) {
         super();
         this.width = window.innerWidth;
         this.height = window.innerHeight;
@@ -56525,8 +56522,10 @@ class GameScene extends THREE.Scene {
         let startPoint = this.track.checkpoints[0];
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
-        let playerVehicleData = speederIndex == 3 ? vehicles_1.bike :
-            speederIndex == 4 ? vehicles_1.mustang : vehicles_1.speeders[speederIndex];
+        if (isNaN(speederIndex))
+            speederIndex = 0;
+        let playerVehicleData = speederIndex == 3 ? vehicles_1.bike : speederIndex == 4 ? vehicles_1.mustang :
+            speederIndex > 4 || speederIndex < 0 ? vehicles_1.speeders[0] : vehicles_1.speeders[speederIndex];
         this.player = new objects_1.Player(this, this.camera, playerVehicleData, this.track.startPoint.clone(), this.track.startDirection.clone(), this.track.startRotation.clone(), startPoint, debug, this.orbitals);
         this.CPUs = [new objects_1.CPU(this, vehicles_1.speeders[0], this.track.startPoint.clone(), this.track.startDirection.clone(), this.track.startRotation.clone(), startPoint, debug)];
         if (debug) {
