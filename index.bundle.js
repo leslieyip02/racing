@@ -133,7 +133,7 @@ class MenuScene extends THREE.Scene {
         curtain.classList.add("fade-to-black");
         setTimeout(() => {
             window.location.href = `game.html?speeder=${speederIndex}`;
-        }, 900);
+        }, 800);
     }
     update(dt) {
         for (let model of this.models)
