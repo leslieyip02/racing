@@ -132,7 +132,7 @@ export default class GameScene extends THREE.Scene {
 
         let trackData = tracks[0];
         this.track = new Track(this, trackData, debug);
-        let startPoint = this.track.checkpoints[0];
+        let firstCheckpoint = this.track.checkpoints[0];
 
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
@@ -145,10 +145,24 @@ export default class GameScene extends THREE.Scene {
 
         this.player = new Player(this, this.camera, playerVehicleData, 
             this.track.startPoint.clone(), this.track.startDirection.clone(), 
-            this.track.startRotation.clone(), startPoint, debug, this.orbitals);
+            this.track.startRotation.clone(), firstCheckpoint, debug, this.orbitals);
         
-        this.CPUs = [new CPU(this, speeders[0], this.track.startPoint.clone(),
-            this.track.startDirection.clone(), this.track.startRotation.clone(), startPoint, debug)]
+        this.CPUs = [];
+        let offset = 4;
+
+        for (let i = 0; i < 3; i++) {
+            if (i == speederIndex || this.CPUs.length == 3)
+                continue;
+
+            let startPoint = new THREE.Vector3(this.track.startPoint.x, 
+                this.track.startPoint.y, this.track.startPoint.z + offset);
+
+            this.CPUs.push(new CPU(this, speeders[i], startPoint,
+                this.track.startDirection.clone(), 
+                this.track.startRotation.clone(), firstCheckpoint, debug));
+
+            offset *= -1;
+        }
 
         if (debug) {
             // set up debugger

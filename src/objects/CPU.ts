@@ -4,7 +4,8 @@ import Vehicle from "./Vehicle";
 import Track from "./Track";
 
 export default class CPU extends Vehicle {
-    currentIndex: number;
+    pathPointIndex: number;
+    maxThrust: number;
     
     constructor(scene: THREE.Scene, vehicleData: VehicleData, 
         position: THREE.Vector3, direction: THREE.Vector3,
@@ -12,16 +13,17 @@ export default class CPU extends Vehicle {
 
         super(scene, vehicleData, position, direction, 
             rotation, checkpoint, debug);
+
+        // clamp maxthrust between 0.3 and 0.8
+        this.maxThrust = Math.random() * 0.5 + 0.3;
     }
     
     nextPointIndex(track: Track): number {
         let nearestDistance = Infinity;
         let nearestIndex = 0;
+        this.pathPointIndex %= track.pathPoints.length;
 
-        if (this.currentIndex == track.pathPoints.length - 1)
-            this.currentIndex = 0;
-
-        for (let i = this.currentIndex; i < track.pathPoints.length; i++) {
+        for (let i = this.pathPointIndex; i < track.pathPoints.length; i++) {
             let distance = this.position.clone()
                 .distanceToSquared(track.pathPoints[i].clone());
             if (distance < nearestDistance) {
@@ -38,11 +40,11 @@ export default class CPU extends Vehicle {
             return;
 
         // keep constant thrust for convenience
-        this.thrust = 0.5;
+        this.thrust = Math.min(this.thrust + 0.02, this.maxThrust);
 
         // update direciton manually instead of using controls
-        this.currentIndex = this.nextPointIndex(track);
-        this.direction = track.pathVectors[this.currentIndex].clone();
+        this.pathPointIndex = this.nextPointIndex(track);
+        this.direction = track.pathVectors[this.pathPointIndex].clone();
 
         // set velocity directly for greater control of the CPU's movement
         this.velocity = this.direction.clone()
