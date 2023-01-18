@@ -56461,6 +56461,10 @@ class GameScene extends THREE.Scene {
             this.renderer.setSize(this.width, this.height);
             this.filter.setSize(this.width, this.height);
         }, false);
+        this.countdown = 0;
+        setTimeout(() => {
+            document.getElementById("curtain").classList.remove("fade-in");
+        }, 5000);
     }
     setupBackgroundEntities(number = 5000, distance = 1000, offset = 200) {
         this.satellites = [];
@@ -56519,15 +56523,24 @@ class GameScene extends THREE.Scene {
         this.add(light);
         let trackData = tracks_1.tracks[0];
         this.track = new objects_1.Track(this, trackData, debug);
-        let startPoint = this.track.checkpoints[0];
+        let firstCheckpoint = this.track.checkpoints[0];
         if (!trackData.gridColor)
             this.setupBackgroundEntities();
         if (isNaN(speederIndex))
             speederIndex = 0;
         let playerVehicleData = speederIndex == 3 ? vehicles_1.bike : speederIndex == 4 ? vehicles_1.mustang :
             speederIndex > 4 || speederIndex < 0 ? vehicles_1.speeders[0] : vehicles_1.speeders[speederIndex];
-        this.player = new objects_1.Player(this, this.camera, playerVehicleData, this.track.startPoint.clone(), this.track.startDirection.clone(), this.track.startRotation.clone(), startPoint, debug, this.orbitals);
-        this.CPUs = [new objects_1.CPU(this, vehicles_1.speeders[0], this.track.startPoint.clone(), this.track.startDirection.clone(), this.track.startRotation.clone(), startPoint, debug)];
+        this.player = new objects_1.Player(this, this.camera, playerVehicleData, this.track.startPoint.clone(), this.track.startDirection.clone(), this.track.startRotation.clone(), firstCheckpoint, debug, this.orbitals);
+        this.player.handleCameraMovement(true, true);
+        this.CPUs = [];
+        let offset = 4;
+        for (let i = 0; i < 3; i++) {
+            if (i == speederIndex || this.CPUs.length == 3)
+                continue;
+            let startPoint = new THREE.Vector3(this.track.startPoint.x, this.track.startPoint.y, this.track.startPoint.z + offset);
+            this.CPUs.push(new objects_1.CPU(this, vehicles_1.speeders[i], startPoint, this.track.startDirection.clone(), this.track.startRotation.clone(), firstCheckpoint, debug));
+            offset *= -1;
+        }
         if (debug) {
             // set up debugger
             this.debugger = new dat_gui_1.GUI();
@@ -56619,28 +56632,27 @@ class GameScene extends THREE.Scene {
             this.keysPressed[`arrow${direction}`] = true;
         });
     }
+    handleCountdown() {
+        if (this.countdown < 3000 || this.countdown > 7000)
+            return document.getElementById("countdown").innerHTML = "";
+        document.getElementById("countdown").innerHTML = this.countdown < 6000 ?
+            Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
+    }
+    // update game objects
     update(dt) {
-        // update game objects
+        if (!dt)
+            return;
+        // wait 3 seconds for fade in
+        // wait 3 seconds for countdown
+        this.countdown += dt;
+        this.handleCountdown();
+        if (this.countdown < 6000) {
+            return;
+        }
         this.track.update(dt);
         this.player.update(this.track, dt, this.keysPressed);
         for (let cpu of this.CPUs)
             cpu.update(this.track, dt);
-        // determine position of the player
-        // let vehicles: Array<Vehicle> = [this.player, ...this.CPUs];
-        // vehicles.sort((a, b) => {
-        //     let lapDifference = a.laps - b.laps;
-        //     if (lapDifference != 0)
-        //         return -Math.sign(lapDifference);
-        //     let checkpointDifference = a.checkpoint.index - b.checkpoint.index;
-        //     if (checkpointDifference != 0)
-        //         return -Math.sign(checkpointDifference);
-        //     let nextCheckpointIndex = (a.checkpoint.index + 1) % this.track.checkpoints.length;
-        //     let nextCheckpointPosition = this.track.checkpoints[nextCheckpointIndex].mesh.position;
-        //     let distanceDifference = a.position.distanceTo(nextCheckpointPosition.clone()) - 
-        //         b.position.distanceTo(nextCheckpointPosition.clone());
-        //     return Math.sign(distanceDifference);
-        // });
-        // let rank = vehicles.indexOf(this.player) + 1;
         // scene decorations
         if (this.satellites)
             for (let satellite of this.satellites)
@@ -61862,13 +61874,14 @@ const Vehicle_1 = __importDefault(__webpack_require__(26));
 class CPU extends Vehicle_1.default {
     constructor(scene, vehicleData, position, direction, rotation, checkpoint, debug) {
         super(scene, vehicleData, position, direction, rotation, checkpoint, debug);
+        // clamp maxthrust between 0.3 and 0.8
+        this.maxThrust = Math.random() * 0.5 + 0.3;
     }
     nextPointIndex(track) {
         let nearestDistance = Infinity;
         let nearestIndex = 0;
-        if (this.currentIndex == track.pathPoints.length - 1)
-            this.currentIndex = 0;
-        for (let i = this.currentIndex; i < track.pathPoints.length; i++) {
+        this.pathPointIndex %= track.pathPoints.length;
+        for (let i = this.pathPointIndex; i < track.pathPoints.length; i++) {
             let distance = this.position.clone()
                 .distanceToSquared(track.pathPoints[i].clone());
             if (distance < nearestDistance) {
@@ -61881,11 +61894,11 @@ class CPU extends Vehicle_1.default {
     update(track, dt) {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
-        // keep constant thrust for convenience
-        this.thrust = 0.5;
+        // clamp thrust
+        this.thrust = Math.min(this.thrust + 0.02, this.maxThrust);
         // update direciton manually instead of using controls
-        this.currentIndex = this.nextPointIndex(track);
-        this.direction = track.pathVectors[this.currentIndex].clone();
+        this.pathPointIndex = this.nextPointIndex(track);
+        this.direction = track.pathVectors[this.pathPointIndex].clone();
         // set velocity directly for greater control of the CPU's movement
         this.velocity = this.direction.clone()
             .multiplyScalar(this.acceleration * this.thrust * dt * 50);
@@ -61962,7 +61975,6 @@ class Vehicle {
         this.length = vehicleData.length;
         this.render(scene, vehicleData.modelPath, debug);
         this.isAlive = true;
-        this.canMove = true;
         this.checkpoint = checkpoint;
         this.lastCheckpointIndex = 1;
         this.laps = 1;
@@ -61997,6 +62009,7 @@ class Vehicle {
             let loader = new GLTFLoader_1.GLTFLoader();
             yield loader.loadAsync(modelPath)
                 .then(data => this.loadGLTF(scene, data));
+            this.model.setRotationFromEuler(this.rotation.clone());
             // vehicle hitbox
             let geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
             let material = new THREE.MeshBasicMaterial({
@@ -62007,6 +62020,7 @@ class Vehicle {
             });
             this.hitbox = new THREE.Mesh(geometry, material);
             this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
+            this.hitbox.setRotationFromEuler(this.rotation.clone());
             scene.add(this.hitbox);
             if (debug) {
                 this.directionDebug = new debug_1.DynamicDebugVector(scene, this.direction, this.position);
@@ -62101,8 +62115,6 @@ class Vehicle {
         this.direction.applyAxisAngle(this.hitbox.up, angle);
     }
     handleVehicleMovement() {
-        if (!this.canMove)
-            return;
         // friction
         this.velocity.multiplyScalar(this.friction);
         // gravity
@@ -62130,7 +62142,6 @@ class Vehicle {
                 setTimeout(() => {
                     this.resetToCheckpoint(this.checkpoint);
                     this.isAlive = true;
-                    this.canMove = false;
                     if (updateUI) {
                         curtain.classList.remove("fade-to-black");
                         curtain.style.opacity = "100";
@@ -62141,7 +62152,6 @@ class Vehicle {
                             curtain.classList.remove("scroll-up");
                             curtain.style.opacity = "0";
                         }
-                        this.canMove = true;
                     }, 1000);
                 }, 900);
             }

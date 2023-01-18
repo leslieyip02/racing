@@ -129,7 +129,6 @@ class MenuScene extends THREE.Scene {
         });
     }
     startGame(speederIndex) {
-        // document.getElementById("selectors").style.display = "none";
         let curtain = document.getElementById("curtain");
         curtain.classList.add("fade-to-black");
         setTimeout(() => {
