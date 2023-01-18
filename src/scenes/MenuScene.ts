@@ -93,7 +93,7 @@ export default class MenuScene extends THREE.Scene {
 
         setTimeout(() => {
             window.location.href = `game.html?speeder=${speederIndex}`;
-        }, 900);
+        }, 800);
     }
 
     update(dt: number) {
