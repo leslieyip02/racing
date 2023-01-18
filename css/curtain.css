@@ -8,14 +8,21 @@
 }
 
 .fade-to-black {
-    animation-name: fade-to-black;
-    animation-duration: 1s;
-    animation-timing-function: ease-in;
+    animation: fade-to-black 1s ease-in;
 }
 
 @keyframes fade-to-black {
     0% { opacity: 0%; }
     100% { opacity: 100%; }
+}
+
+.fade-in {
+    animation: fade-in 2s ease-in;
+}
+
+@keyframes fade-in {
+    0% { opacity: 100%; }
+    100% { opacity: 0%; }
 }
 
 .scroll-up {

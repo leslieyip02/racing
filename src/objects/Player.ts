@@ -113,7 +113,7 @@ export default class Player extends Vehicle {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
         
-        this.handleInput(keysPressed, dt);
+        this.handleInput(keysPressed, dt);        
         super.update(track, dt);
         this.handleCameraMovement(!keysPressed["r"], this.isAlive);
     }

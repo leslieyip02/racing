@@ -33,6 +33,8 @@ export default class GameScene extends THREE.Scene {
     player: Player;
     CPUs: Array<Vehicle>;
 
+    countdown: number;
+
     constructor(speederIndex: number, debug?: boolean) {
         super();
 
@@ -57,6 +59,11 @@ export default class GameScene extends THREE.Scene {
             this.renderer.setSize(this.width, this.height);
             this.filter.setSize(this.width, this.height);
         }, false);
+
+        this.countdown = 0;
+        setTimeout(() => {
+            document.getElementById("curtain").classList.remove("fade-in");
+        }, 5000);
     }
 
     setupBackgroundEntities(number: number = 5000, 
@@ -146,7 +153,8 @@ export default class GameScene extends THREE.Scene {
         this.player = new Player(this, this.camera, playerVehicleData, 
             this.track.startPoint.clone(), this.track.startDirection.clone(), 
             this.track.startRotation.clone(), firstCheckpoint, debug, this.orbitals);
-        
+        this.player.handleCameraMovement(true, true);
+
         this.CPUs = [];
         let offset = 4;
 
@@ -286,34 +294,32 @@ export default class GameScene extends THREE.Scene {
         });
     }
 
+    handleCountdown() {
+        if (this.countdown < 3000 || this.countdown > 7000)
+            return document.getElementById("countdown").innerHTML = "";
+
+        document.getElementById("countdown").innerHTML = this.countdown < 6000 ? 
+            Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
+    }
+
+    // update game objects
     update(dt?: number) {
-        // update game objects
+        if (!dt)
+            return;
+
+        // wait 3 seconds for fade in
+        // wait 3 seconds for countdown
+        this.countdown += dt;
+        this.handleCountdown();
+        if (this.countdown < 6000) {
+            return;
+        }
+
         this.track.update(dt);
-        
         this.player.update(this.track, dt, this.keysPressed);
 
         for (let cpu of this.CPUs)
             cpu.update(this.track, dt);
-
-        // determine position of the player
-        // let vehicles: Array<Vehicle> = [this.player, ...this.CPUs];
-        // vehicles.sort((a, b) => {
-        //     let lapDifference = a.laps - b.laps;
-        //     if (lapDifference != 0)
-        //         return -Math.sign(lapDifference);
-
-        //     let checkpointDifference = a.checkpoint.index - b.checkpoint.index;
-        //     if (checkpointDifference != 0)
-        //         return -Math.sign(checkpointDifference);
-
-        //     let nextCheckpointIndex = (a.checkpoint.index + 1) % this.track.checkpoints.length;
-        //     let nextCheckpointPosition = this.track.checkpoints[nextCheckpointIndex].mesh.position;
-        //     let distanceDifference = a.position.distanceTo(nextCheckpointPosition.clone()) - 
-        //         b.position.distanceTo(nextCheckpointPosition.clone());
-        //     return Math.sign(distanceDifference);
-        // });
-
-        // let rank = vehicles.indexOf(this.player) + 1;
         
         // scene decorations
         if (this.satellites)

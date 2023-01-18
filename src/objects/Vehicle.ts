@@ -27,7 +27,6 @@ export default class Vehicle {
     hitbox: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
 
     isAlive: boolean;
-    canMove: boolean;
 
     checkpoint: Checkpoint;
     lastCheckpointIndex: number;
@@ -63,7 +62,6 @@ export default class Vehicle {
         this.render(scene, vehicleData.modelPath, debug);
 
         this.isAlive = true;
-        this.canMove = true;
 
         this.checkpoint = checkpoint;
         this.lastCheckpointIndex = 1;
@@ -103,6 +101,7 @@ export default class Vehicle {
         let loader = new GLTFLoader();
         await loader.loadAsync(modelPath)
             .then(data => this.loadGLTF(scene, data));
+        this.model.setRotationFromEuler(this.rotation.clone());
 
         // vehicle hitbox
         let geometry = new THREE.BoxGeometry(this.width, this.height, this.length);
@@ -115,6 +114,7 @@ export default class Vehicle {
 
         this.hitbox = new THREE.Mesh(geometry, material);
         this.hitbox.position.set(this.position.x, this.position.y, this.position.z);
+        this.hitbox.setRotationFromEuler(this.rotation.clone());
         scene.add(this.hitbox);
 
         if (debug) {
@@ -241,9 +241,6 @@ export default class Vehicle {
     }
 
     handleVehicleMovement() {
-        if (!this.canMove)
-            return;
-
         // friction
         this.velocity.multiplyScalar(this.friction);
 
@@ -279,7 +276,6 @@ export default class Vehicle {
                 setTimeout(() => {
                     this.resetToCheckpoint(this.checkpoint);
                     this.isAlive = true;
-                    this.canMove = false;
 
                     if (updateUI) {
                         curtain.classList.remove("fade-to-black");
@@ -292,8 +288,6 @@ export default class Vehicle {
                             curtain.classList.remove("scroll-up");
                             curtain.style.opacity = "0";
                         }
-
-                        this.canMove = true;
                     }, 1000)
                 }, 900);
             } 

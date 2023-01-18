@@ -1,5 +1,6 @@
 #dashboard {
     color: #ffffff;
+    text-align: center;
     font-size: 5vh;
     font-family: "Source Code Pro", monospace;
 }
@@ -8,6 +9,14 @@
     position: absolute;
     top: 5vh;
     left: 5vw;
+}
+
+#countdown {
+    position: absolute;
+    top: 3.5vh;
+    left: 45vw;
+    width: 10vw;
+    font-size: 8vh;
 }
 
 #timer {

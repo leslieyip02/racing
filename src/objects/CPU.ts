@@ -39,7 +39,7 @@ export default class CPU extends Vehicle {
         if (!this.model || !this.hitbox || !track || !dt)
             return;
 
-        // keep constant thrust for convenience
+        // clamp thrust
         this.thrust = Math.min(this.thrust + 0.02, this.maxThrust);
 
         // update direciton manually instead of using controls
