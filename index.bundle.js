@@ -77,6 +77,9 @@ class MenuScene extends THREE.Scene {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
         this.render();
+        this.sounds = {
+            "vehicle-select": new Audio("./assets/sounds/vehicle-select.wav")
+        };
         // set up window resizing
         window.addEventListener("resize", () => {
             this.width = window.innerWidth;
@@ -129,6 +132,8 @@ class MenuScene extends THREE.Scene {
         });
     }
     startGame(speederIndex) {
+        var _a;
+        (_a = this.sounds["vehicle-select"]) === null || _a === void 0 ? void 0 : _a.play();
         let curtain = document.getElementById("curtain");
         curtain.classList.add("fade-to-black");
         setTimeout(() => {

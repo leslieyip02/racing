@@ -56651,9 +56651,7 @@ class GameScene extends THREE.Scene {
         }
     }
     handleRaceFinish() {
-        var _a;
         if (!this.finished) {
-            (_a = this.player.sounds["complete-race"]) === null || _a === void 0 ? void 0 : _a.play();
             document.getElementById("curtain").classList.add("long-fade-to-black");
             let rank = 1;
             for (let cpu of this.CPUs)
@@ -56663,6 +56661,9 @@ class GameScene extends THREE.Scene {
                 document.getElementById(id).style.display = "none";
             });
             setTimeout(() => {
+                var _a;
+                (_a = this.player.sounds["complete-race"]) === null || _a === void 0 ? void 0 : _a.play();
+                this.player.engineSound.stop();
                 document.getElementById("finish-screen").style.display = "flex";
                 let suffixes = ["st", "nd", "rd"];
                 document.getElementById("finish-rank").innerHTML = rank.toString();
@@ -62127,8 +62128,7 @@ class Vehicle {
                             if (checkpoint.index == 1) {
                                 this.laps++;
                                 if (player) {
-                                    if (this.laps <= 2)
-                                        (_a = this.sounds["complete-lap"]) === null || _a === void 0 ? void 0 : _a.play();
+                                    (_a = this.sounds["complete-lap"]) === null || _a === void 0 ? void 0 : _a.play();
                                     document.getElementById("counter").innerHTML =
                                         `Lap ${this.laps.toString()}/2`;
                                 }
@@ -62346,13 +62346,14 @@ class Player extends Vehicle_1.default {
         this.sounds = {
             "complete-lap": new Audio("./assets/sounds/complete-lap.wav"),
             "complete-race": new Audio("./assets/sounds/complete-race.wav"),
-            "engine": new Audio("./assets/sounds/engine.mp3"),
             "out-of-bounds": new Audio("./assets/sounds/out-of-bounds.wav")
         };
+        // map engine sound frequency based on velocity
         let context = new AudioContext();
         this.engineSound = context.createOscillator();
         this.engineSound.type = "triangle";
         this.engineSound.connect(context.destination);
+        this.engineSound.frequency.value = 0;
         this.engineSound.start();
     }
     handleCameraMovement(forward, follow = true) {
@@ -62410,9 +62411,10 @@ class Player extends Vehicle_1.default {
         if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
                 .multiplyScalar(this.deceleration * this.thrust * dt));
-        // if (keysPressed["w"] || keysPressed["s"] || keysPressed["shift"]) {
-        this.engineSound.frequency.value = 80 + this.velocity.length();
-        // }
+        if (keysPressed["w"] || keysPressed["s"] || keysPressed["shift"])
+            this.engineSound.frequency.value = 50 + this.velocity.length() * 100;
+        else
+            this.engineSound.frequency.value *= 0.96;
         // turning
         if (keysPressed["d"])
             this.turn(-this.turnRate * dt);
