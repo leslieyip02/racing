@@ -1,0 +1,49 @@
+#finish-screen {
+    display: none;
+
+    position: absolute;
+    inset: 0;
+    margin: auto;    
+    width: 80vw;
+    height: 80vh;
+    border: 2px dashed white;
+    
+    color: #ffffff;
+    text-align: center;
+    font-size: 5vh;
+    font-family: "Source Code Pro", monospace;
+
+    justify-content: center;
+}
+
+#finish-text {
+    margin-top: 15vh;
+    margin-right: -5vw;
+}
+
+#finish-stats {
+    display: flex;
+    justify-content: center;
+    align-self: center;
+}
+
+#finish-rank {
+    font-size: 50vh;
+}
+
+#finish-stats-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#finish-rank-suffix {
+    text-align: left;
+    font-size: 15vh;
+    text-decoration: double underline;
+}
+
+#finish-time {
+    padding: 15px;
+    border: 2px solid white;
+}

@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@1,300&display=swap");
 @import "./curtain.css";
 @import "./dashboard.css";
+@import "./finished.css";
 @import "./gauge.css";
 @import "./joystick.css";
 @import "./menu.css";

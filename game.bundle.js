@@ -56462,6 +56462,7 @@ class GameScene extends THREE.Scene {
             this.filter.setSize(this.width, this.height);
         }, false);
         this.countdown = 0;
+        this.finished = false;
         setTimeout(() => {
             document.getElementById("curtain").classList.remove("fade-in");
         }, 5000);
@@ -56638,6 +56639,27 @@ class GameScene extends THREE.Scene {
         document.getElementById("countdown").innerHTML = this.countdown < 6000 ?
             Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
     }
+    handleRaceFinish() {
+        if (!this.finished) {
+            document.getElementById("curtain").classList.add("long-fade-to-black");
+            let rank = 1;
+            for (let cpu of this.CPUs)
+                if (cpu.laps > 2)
+                    rank++;
+            ["dashboard", "joystick", "gauge"].forEach((id) => {
+                document.getElementById(id).style.display = "none";
+            });
+            setTimeout(() => {
+                document.getElementById("finish-screen").style.display = "flex";
+                let suffixes = ["st", "nd", "rd"];
+                document.getElementById("finish-rank").innerHTML = rank.toString();
+                document.getElementById("finish-rank-suffix").innerHTML = suffixes[rank - 1];
+                document.getElementById("finish-time").innerHTML =
+                    `Time: ${this.track.getTimeString()}`;
+            }, 3200);
+            this.finished = true;
+        }
+    }
     // update game objects
     update(dt) {
         if (!dt)
@@ -56646,10 +56668,14 @@ class GameScene extends THREE.Scene {
         // wait 3 seconds for countdown
         this.countdown += dt;
         this.handleCountdown();
-        if (this.countdown < 6000) {
+        if (this.countdown < 6000)
             return;
-        }
-        this.track.update(dt);
+        // race ends after 2 laps
+        if (this.player.laps > 2)
+            this.handleRaceFinish();
+        else
+            this.track.update(dt);
+        // update vehicles
         this.player.update(this.track, dt, this.keysPressed);
         for (let cpu of this.CPUs)
             cpu.update(this.track, dt);
@@ -62087,7 +62113,7 @@ class Vehicle {
                                 this.laps++;
                                 if (updateUI)
                                     document.getElementById("counter").innerHTML =
-                                        `Lap ${this.laps.toString()}/3`;
+                                        `Lap ${this.laps.toString()}/2`;
                             }
                             this.lastCheckpointIndex = checkpoint.index;
                             this.checkpoint = checkpoint;
@@ -62363,6 +62389,8 @@ class Player extends Vehicle_1.default {
             this.rotation.z *= 0.8;
     }
     handleOutOfBounds() {
+        if (this.laps > 2)
+            return;
         super.handleOutOfBounds(true);
         this.updateGaugeFill();
     }
@@ -62569,16 +62597,19 @@ class Track {
             let sign = new decorations_1.Sign(signPoints, scene);
         }
     }
-    update(dt) {
-        if (!dt)
-            return;
-        this.elapsedTime += dt;
+    getTimeString() {
         let minutes = this.elapsedTime / 60000;
         let seconds = (this.elapsedTime % 60000) / 1000;
         let centiseconds = (this.elapsedTime / 10) % 100;
         let timeUnitStrings = [minutes, seconds, centiseconds]
             .map(t => Math.floor(t).toString().padStart(2, "0"));
-        document.getElementById("timer").innerHTML = timeUnitStrings.join(":");
+        return timeUnitStrings.join(":");
+    }
+    update(dt) {
+        if (!dt)
+            return;
+        this.elapsedTime += dt;
+        document.getElementById("timer").innerHTML = this.getTimeString();
         for (let platform of this.movingPlatforms) {
             let time = (this.elapsedTime + platform.phase) % platform.period;
             let phase = 2 * Math.PI * (time / platform.period);
