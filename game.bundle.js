@@ -56463,6 +56463,10 @@ class GameScene extends THREE.Scene {
         }, false);
         this.countdown = 0;
         this.finished = false;
+        this.sounds = {
+            "countdown": new Audio("./assets/sounds/countdown.wav"),
+            "countdown-start": new Audio("./assets/sounds/countdown-start.wav")
+        };
         setTimeout(() => {
             document.getElementById("curtain").classList.remove("fade-in");
         }, 5000);
@@ -56634,13 +56638,22 @@ class GameScene extends THREE.Scene {
         });
     }
     handleCountdown() {
+        let countdown = document.getElementById("countdown");
         if (this.countdown < 3000 || this.countdown > 7000)
-            return document.getElementById("countdown").innerHTML = "";
-        document.getElementById("countdown").innerHTML = this.countdown < 6000 ?
+            return countdown.innerHTML = "";
+        let countDownText = this.countdown < 6000 ?
             Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
+        if (countdown.innerHTML != countDownText) {
+            let sound = "countdown" + (countDownText == "GO!" ? "-start" : "");
+            this.sounds[sound].play();
+            countdown.innerHTML = this.countdown < 6000 ?
+                Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
+        }
     }
     handleRaceFinish() {
+        var _a;
         if (!this.finished) {
+            (_a = this.player.sounds["complete-race"]) === null || _a === void 0 ? void 0 : _a.play();
             document.getElementById("curtain").classList.add("long-fade-to-black");
             let rank = 1;
             for (let cpu of this.CPUs)
@@ -62004,6 +62017,7 @@ class Vehicle {
         this.checkpoint = checkpoint;
         this.lastCheckpointIndex = 1;
         this.laps = 1;
+        this.sounds = {};
     }
     loadGLTF(scene, data) {
         this.model = data.scene;
@@ -62055,7 +62069,8 @@ class Vehicle {
             }
         });
     }
-    handleTrackCollision(track, updateUI) {
+    handleTrackCollision(track, player) {
+        var _a;
         let currentPosition = this.position.clone();
         let handledCollision = false;
         let handledCheckpoint = false;
@@ -62111,9 +62126,12 @@ class Vehicle {
                         if (checkpoint.index > (this.lastCheckpointIndex % track.checkpoints.length)) {
                             if (checkpoint.index == 1) {
                                 this.laps++;
-                                if (updateUI)
+                                if (player) {
+                                    if (this.laps <= 2)
+                                        (_a = this.sounds["complete-lap"]) === null || _a === void 0 ? void 0 : _a.play();
                                     document.getElementById("counter").innerHTML =
                                         `Lap ${this.laps.toString()}/2`;
+                                }
                             }
                             this.lastCheckpointIndex = checkpoint.index;
                             this.checkpoint = checkpoint;
@@ -62157,24 +62175,26 @@ class Vehicle {
         if (this.upDebug)
             this.upDebug.update(this.hitbox.up, this.position.clone());
     }
-    handleOutOfBounds(updateUI) {
+    handleOutOfBounds(player) {
+        var _a;
         // reset vehicle to last checkpoint if it falls out of bounds        
         if (this.position.y < -30 || !this.isAlive) {
             let curtain = document.getElementById("curtain");
-            if (updateUI)
+            if (player)
                 curtain.classList.add("fade-to-black");
             if (this.isAlive) {
                 this.isAlive = false;
+                (_a = this.sounds["out-of-bounds"]) === null || _a === void 0 ? void 0 : _a.play();
                 setTimeout(() => {
                     this.resetToCheckpoint(this.checkpoint);
                     this.isAlive = true;
-                    if (updateUI) {
+                    if (player) {
                         curtain.classList.remove("fade-to-black");
                         curtain.style.opacity = "100";
                         curtain.classList.add("scroll-up");
                     }
                     setTimeout(() => {
-                        if (updateUI) {
+                        if (player) {
                             curtain.classList.remove("scroll-up");
                             curtain.style.opacity = "0";
                         }
@@ -62323,6 +62343,17 @@ class Player extends Vehicle_1.default {
         this.manualCamera = false;
         this.camera = camera;
         this.orbitals = orbitals;
+        this.sounds = {
+            "complete-lap": new Audio("./assets/sounds/complete-lap.wav"),
+            "complete-race": new Audio("./assets/sounds/complete-race.wav"),
+            "engine": new Audio("./assets/sounds/engine.mp3"),
+            "out-of-bounds": new Audio("./assets/sounds/out-of-bounds.wav")
+        };
+        let context = new AudioContext();
+        this.engineSound = context.createOscillator();
+        this.engineSound.type = "triangle";
+        this.engineSound.connect(context.destination);
+        this.engineSound.start();
     }
     handleCameraMovement(forward, follow = true) {
         if (this.orbitals)
@@ -62379,6 +62410,9 @@ class Player extends Vehicle_1.default {
         if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
                 .multiplyScalar(this.deceleration * this.thrust * dt));
+        // if (keysPressed["w"] || keysPressed["s"] || keysPressed["shift"]) {
+        this.engineSound.frequency.value = 80 + this.velocity.length();
+        // }
         // turning
         if (keysPressed["d"])
             this.turn(-this.turnRate * dt);
