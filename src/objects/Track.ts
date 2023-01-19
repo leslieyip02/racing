@@ -244,20 +244,22 @@ export default class Track {
         }
     }
 
-    update(dt?: number) {
-        if (!dt)
-            return;
-
-        this.elapsedTime += dt;
-
+    getTimeString() {
         let minutes = this.elapsedTime / 60000;
         let seconds = (this.elapsedTime % 60000) / 1000;
         let centiseconds = (this.elapsedTime / 10) % 100;
 
         let timeUnitStrings = [minutes, seconds, centiseconds]
             .map(t => Math.floor(t).toString().padStart(2, "0"));
+        return timeUnitStrings.join(":");
+    }
 
-        document.getElementById("timer").innerHTML = timeUnitStrings.join(":");
+    update(dt?: number) {
+        if (!dt)
+            return;
+
+        this.elapsedTime += dt;
+        document.getElementById("timer").innerHTML = this.getTimeString();
         
         for (let platform of this.movingPlatforms) {
             let time = (this.elapsedTime + platform.phase) % platform.period;

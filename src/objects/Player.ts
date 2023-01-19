@@ -105,6 +105,9 @@ export default class Player extends Vehicle {
     }
 
     handleOutOfBounds() {
+        if (this.laps > 2)
+            return;
+
         super.handleOutOfBounds(true);
         this.updateGaugeFill();
     }

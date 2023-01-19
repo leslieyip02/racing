@@ -11,6 +11,10 @@
     animation: fade-to-black 1s ease-in;
 }
 
+.long-fade-to-black {
+    animation: fade-to-black 3s ease-in forwards;
+}
+
 @keyframes fade-to-black {
     0% { opacity: 0%; }
     100% { opacity: 100%; }

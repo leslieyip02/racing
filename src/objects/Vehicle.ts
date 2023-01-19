@@ -205,7 +205,7 @@ export default class Vehicle {
 
                                 if (updateUI)
                                     document.getElementById("counter").innerHTML = 
-                                        `Lap ${this.laps.toString()}/3`;
+                                        `Lap ${this.laps.toString()}/2`;
                             }
                             
                             this.lastCheckpointIndex = checkpoint.index;
