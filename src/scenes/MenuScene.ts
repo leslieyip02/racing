@@ -16,6 +16,8 @@ export default class MenuScene extends THREE.Scene {
     width: number;
     height: number;
 
+    sounds: { [key: string]: HTMLAudioElement };
+
     constructor() {
         super();
 
@@ -23,6 +25,10 @@ export default class MenuScene extends THREE.Scene {
         this.height = window.innerHeight;
 
         this.render();
+
+        this.sounds = {
+            "vehicle-select": new Audio("./assets/sounds/vehicle-select.wav")
+        };
 
         // set up window resizing
         window.addEventListener("resize", () => {
@@ -88,6 +94,8 @@ export default class MenuScene extends THREE.Scene {
     }
 
     startGame(speederIndex: number) {
+        this.sounds["vehicle-select"]?.play();
+
         let curtain = document.getElementById("curtain");
         curtain.classList.add("fade-to-black");
 

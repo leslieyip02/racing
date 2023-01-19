@@ -9,6 +9,8 @@ export default class Player extends Vehicle {
     manualCamera: boolean = false;
     orbitals?: OrbitControls;
 
+    engineSound: OscillatorNode;
+
     constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera,
         vehicleData: VehicleData, position: THREE.Vector3, direction: THREE.Vector3,
         rotation: THREE.Euler, checkpoint: Checkpoint,
@@ -18,6 +20,20 @@ export default class Player extends Vehicle {
             rotation, checkpoint, debug);
         this.camera = camera;
         this.orbitals = orbitals;
+
+        this.sounds = {
+            "complete-lap": new Audio("./assets/sounds/complete-lap.wav"),
+            "complete-race": new Audio("./assets/sounds/complete-race.wav"),
+            "out-of-bounds": new Audio("./assets/sounds/out-of-bounds.wav")
+        };
+
+        // map engine sound frequency based on velocity
+        let context = new AudioContext();
+        this.engineSound = context.createOscillator();
+        this.engineSound.type = "triangle";
+        this.engineSound.connect(context.destination);
+        this.engineSound.frequency.value = 0;
+        this.engineSound.start();
     }
 
     handleCameraMovement(forward: boolean, follow: boolean = true) {
@@ -91,6 +107,11 @@ export default class Player extends Vehicle {
         if (keysPressed["s"] || keysPressed["shift"])
             this.velocity.sub(this.direction.clone()
                 .multiplyScalar(this.deceleration * this.thrust * dt));
+
+        if (keysPressed["w"] || keysPressed["s"] || keysPressed["shift"])
+            this.engineSound.frequency.value = 50 + this.velocity.length() * 100;
+        else
+            this.engineSound.frequency.value *= 0.96;
 
         // turning
         if (keysPressed["d"])

@@ -32,6 +32,8 @@ export default class Vehicle {
     lastCheckpointIndex: number;
     laps: number;
 
+    sounds: { [key: string]: HTMLAudioElement };
+
     directionDebug?: DynamicDebugVector;
     normalDebug?: DynamicDebugVector;
     upDebug?: DynamicDebugVector;
@@ -66,6 +68,8 @@ export default class Vehicle {
         this.checkpoint = checkpoint;
         this.lastCheckpointIndex = 1;
         this.laps = 1;
+
+        this.sounds = {};
     }
 
     loadGLTF(scene: THREE.Scene, data: GLTF) {
@@ -124,7 +128,7 @@ export default class Vehicle {
         }
     }
 
-    handleTrackCollision(track: Track, updateUI?: boolean) {
+    handleTrackCollision(track: Track, player?: boolean) {
         let currentPosition = this.position.clone();
 
         let handledCollision = false;
@@ -203,9 +207,12 @@ export default class Vehicle {
                             if (checkpoint.index == 1) {
                                 this.laps++;
 
-                                if (updateUI)
+                                if (player) {
+                                    this.sounds["complete-lap"]?.play();
+
                                     document.getElementById("counter").innerHTML = 
                                         `Lap ${this.laps.toString()}/2`;
+                                }
                             }
                             
                             this.lastCheckpointIndex = checkpoint.index;
@@ -263,28 +270,30 @@ export default class Vehicle {
             this.upDebug.update(this.hitbox.up, this.position.clone());
     }
 
-    handleOutOfBounds(updateUI?: boolean) {
+    handleOutOfBounds(player?: boolean) {
         // reset vehicle to last checkpoint if it falls out of bounds        
         if (this.position.y < -30 || !this.isAlive) {            
             let curtain = document.getElementById("curtain");
-            if (updateUI)
+            if (player)
                 curtain.classList.add("fade-to-black");
 
             if (this.isAlive) {
                 this.isAlive = false;
 
+                this.sounds["out-of-bounds"]?.play();
+
                 setTimeout(() => {
                     this.resetToCheckpoint(this.checkpoint);
                     this.isAlive = true;
 
-                    if (updateUI) {
+                    if (player) {
                         curtain.classList.remove("fade-to-black");
                         curtain.style.opacity = "100";
                         curtain.classList.add("scroll-up");
                     }
                     
                     setTimeout(() => {
-                        if (updateUI) {
+                        if (player) {
                             curtain.classList.remove("scroll-up");
                             curtain.style.opacity = "0";
                         }

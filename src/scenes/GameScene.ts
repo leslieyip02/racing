@@ -36,6 +36,8 @@ export default class GameScene extends THREE.Scene {
     countdown: number;
     finished: boolean;
 
+    sounds: { [key: string]: HTMLAudioElement };
+
     constructor(speederIndex: number, debug?: boolean) {
         super();
 
@@ -63,6 +65,11 @@ export default class GameScene extends THREE.Scene {
 
         this.countdown = 0;
         this.finished = false;
+
+        this.sounds = {
+            "countdown": new Audio("./assets/sounds/countdown.wav"),
+            "countdown-start": new Audio("./assets/sounds/countdown-start.wav")
+        }
 
         setTimeout(() => {
             document.getElementById("curtain").classList.remove("fade-in");
@@ -298,11 +305,20 @@ export default class GameScene extends THREE.Scene {
     }
 
     handleCountdown() {
+        let countdown = document.getElementById("countdown");
         if (this.countdown < 3000 || this.countdown > 7000)
-            return document.getElementById("countdown").innerHTML = "";
+            return countdown.innerHTML = "";
 
-        document.getElementById("countdown").innerHTML = this.countdown < 6000 ? 
+        let countDownText = this.countdown < 6000 ? 
             Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
+        
+        if (countdown.innerHTML != countDownText) {
+            let sound = "countdown" + (countDownText == "GO!" ? "-start" : "");
+            this.sounds[sound].play();
+            countdown.innerHTML = this.countdown < 6000 ? 
+                Math.ceil((6000 - this.countdown) / 1000).toString() : "GO!";
+        }
+        
     }
 
     handleRaceFinish() {
@@ -311,14 +327,17 @@ export default class GameScene extends THREE.Scene {
             
             let rank = 1;
             for (let cpu of this.CPUs)
-                if (cpu.laps > 2)
-                    rank++;
-
+            if (cpu.laps > 2)
+            rank++;
+            
             ["dashboard", "joystick", "gauge"].forEach((id: string) => {
                 document.getElementById(id).style.display = "none";
             });
-
-            setTimeout(() => {
+            
+            setTimeout(() => {            
+                this.player.sounds["complete-race"]?.play();
+                this.player.engineSound.stop();
+                
                 document.getElementById("finish-screen").style.display = "flex";
 
                 let suffixes = ["st", "nd", "rd"]
