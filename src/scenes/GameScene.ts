@@ -357,6 +357,11 @@ export default class GameScene extends THREE.Scene {
         if (!dt)
             return;
 
+        // scene decorations
+        if (this.satellites)
+            for (let satellite of this.satellites)
+                satellite.update(dt);
+
         // wait 3 seconds for fade in
         // wait 3 seconds for countdown
         this.countdown += dt;
@@ -375,10 +380,5 @@ export default class GameScene extends THREE.Scene {
 
         for (let cpu of this.CPUs)
             cpu.update(this.track, dt);
-        
-        // scene decorations
-        if (this.satellites)
-            for (let satellite of this.satellites)
-                satellite.update(dt);
     }
 }
