@@ -56678,6 +56678,10 @@ class GameScene extends THREE.Scene {
     update(dt) {
         if (!dt)
             return;
+        // scene decorations
+        if (this.satellites)
+            for (let satellite of this.satellites)
+                satellite.update(dt);
         // wait 3 seconds for fade in
         // wait 3 seconds for countdown
         this.countdown += dt;
@@ -56693,10 +56697,6 @@ class GameScene extends THREE.Scene {
         this.player.update(this.track, dt, this.keysPressed);
         for (let cpu of this.CPUs)
             cpu.update(this.track, dt);
-        // scene decorations
-        if (this.satellites)
-            for (let satellite of this.satellites)
-                satellite.update(dt);
     }
 }
 exports["default"] = GameScene;
